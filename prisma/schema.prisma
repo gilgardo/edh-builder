@@ -1,0 +1,272 @@
+// EDH Builder - Prisma Schema
+// MTG Commander Deck Builder Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// NextAuth.js Required Models
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+
+  // User profile data
+  username String? @unique
+  bio      String?
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  accounts  Account[]
+  sessions  Session[]
+  decks     Deck[]
+  favorites FavoriteDeck[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// MTG Card Models
+// ============================================
+
+model Card {
+  id         String  @id @default(cuid())
+  scryfallId String  @unique @map("scryfall_id")
+  oracleId   String? @map("oracle_id")
+
+  // Card identity
+  name       String
+  manaCost   String? @map("mana_cost")
+  cmc        Float   @default(0) // Converted mana cost
+  typeLine   String  @map("type_line")
+  oracleText String? @map("oracle_text") @db.Text
+
+  // Colors and identity (stored as comma-separated string: "W,U,B,R,G")
+  colors        String? // Card colors
+  colorIdentity String? @map("color_identity") // Commander color identity
+
+  // Card characteristics
+  power     String?
+  toughness String?
+  loyalty   String?
+
+  // Legality
+  isLegalCommander Boolean @default(false) @map("is_legal_commander")
+
+  // Images (JSON object with different sizes)
+  imageUris Json? @map("image_uris")
+
+  // Pricing (optional, for reference)
+  priceUsd Decimal? @map("price_usd") @db.Decimal(10, 2)
+  priceTix Decimal? @map("price_tix") @db.Decimal(10, 2)
+
+  // Metadata
+  setCode String     @map("set_code")
+  setName String     @map("set_name")
+  rarity  CardRarity
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  deckCards   DeckCard[]
+  commanderOf Deck[]     @relation("Commander")
+  partnerOf   Deck[]     @relation("Partner")
+
+  @@index([name])
+  @@index([scryfallId])
+  @@index([isLegalCommander])
+  @@map("cards")
+}
+
+// ============================================
+// Deck Models
+// ============================================
+
+model Deck {
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
+
+  // Deck format and status
+  format     DeckFormat @default(COMMANDER)
+  isPublic   Boolean    @default(false) @map("is_public")
+  isComplete Boolean    @default(false) @map("is_complete") // Has 100 cards
+
+  // Commander reference
+  commanderId String? @map("commander_id")
+  commander   Card?   @relation("Commander", fields: [commanderId], references: [id])
+
+  // Partner commander (optional)
+  partnerId String? @map("partner_id")
+  partner   Card?   @relation("Partner", fields: [partnerId], references: [id])
+
+  // Owner
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Deck statistics (computed/cached)
+  cardCount     Int      @default(0) @map("card_count")
+  avgCmc        Float?   @map("avg_cmc")
+  colorIdentity String[] @map("color_identity") // ['W', 'U', 'B', 'R', 'G']
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  cards     DeckCard[]
+  favorites FavoriteDeck[]
+  tags      DeckTag[]
+
+  @@index([userId])
+  @@index([isPublic])
+  @@index([commanderId])
+  @@map("decks")
+}
+
+model DeckCard {
+  id       String @id @default(cuid())
+  quantity Int    @default(1)
+
+  // Category within deck
+  category CardCategory @default(MAIN)
+
+  // Relations
+  deckId String @map("deck_id")
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  cardId String @map("card_id")
+  card   Card   @relation(fields: [cardId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([deckId, cardId])
+  @@map("deck_cards")
+}
+
+model FavoriteDeck {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deckId String @map("deck_id")
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, deckId])
+  @@map("favorite_decks")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  decks DeckTag[]
+
+  @@map("tags")
+}
+
+model DeckTag {
+  id String @id @default(cuid())
+
+  deckId String @map("deck_id")
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  tagId String @map("tag_id")
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, tagId])
+  @@map("deck_tags")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum CardRarity {
+  common
+  uncommon
+  rare
+  mythic
+  special
+  bonus
+}
+
+enum DeckFormat {
+  COMMANDER
+  BRAWL
+  OATHBREAKER
+}
+
+enum CardCategory {
+  MAIN       // Main deck
+  COMMANDER  // Commander zone
+  SIDEBOARD  // Sideboard/Maybeboard
+  CONSIDERING // Cards being considered
+}

@@ -1,0 +1,374 @@
+@import "tailwindcss";
+
+/* ============================================
+   EDH Builder - MTG Color Palette & Theme
+   ============================================ */
+
+@theme inline {
+  /* ----------------------------------------
+     MTG Mana Colors - Primary Palette
+     ---------------------------------------- */
+
+  /* White Mana - Cream/Light Gold */
+  --color-mtg-white-50: #fefef9;
+  --color-mtg-white-100: #fdfcf0;
+  --color-mtg-white-200: #faf8dc;
+  --color-mtg-white-300: #f5f2c0;
+  --color-mtg-white-400: #f0eca4;
+  --color-mtg-white-500: #f8f6d8;
+  --color-mtg-white-600: #d9d7b8;
+  --color-mtg-white-700: #b3b196;
+  --color-mtg-white-800: #8c8a75;
+  --color-mtg-white-900: #66645a;
+
+  /* Blue Mana - Deep Blue */
+  --color-mtg-blue-50: #e6f0fa;
+  --color-mtg-blue-100: #cce1f5;
+  --color-mtg-blue-200: #99c3eb;
+  --color-mtg-blue-300: #66a5e0;
+  --color-mtg-blue-400: #3387d6;
+  --color-mtg-blue-500: #0e68ab;
+  --color-mtg-blue-600: #0b5389;
+  --color-mtg-blue-700: #083e67;
+  --color-mtg-blue-800: #062944;
+  --color-mtg-blue-900: #031422;
+
+  /* Black Mana - Near Black */
+  --color-mtg-black-50: #e8e8e8;
+  --color-mtg-black-100: #c4c4c4;
+  --color-mtg-black-200: #9d9d9d;
+  --color-mtg-black-300: #767676;
+  --color-mtg-black-400: #4f4f4f;
+  --color-mtg-black-500: #150b00;
+  --color-mtg-black-600: #120a00;
+  --color-mtg-black-700: #0e0800;
+  --color-mtg-black-800: #0a0500;
+  --color-mtg-black-900: #050300;
+
+  /* Red Mana - Crimson */
+  --color-mtg-red-50: #fde8e8;
+  --color-mtg-red-100: #fbd0d0;
+  --color-mtg-red-200: #f7a1a1;
+  --color-mtg-red-300: #f37272;
+  --color-mtg-red-400: #ef4343;
+  --color-mtg-red-500: #d3202a;
+  --color-mtg-red-600: #a91a22;
+  --color-mtg-red-700: #7f141a;
+  --color-mtg-red-800: #550e11;
+  --color-mtg-red-900: #2a0709;
+
+  /* Green Mana - Forest Green */
+  --color-mtg-green-50: #e8f5e9;
+  --color-mtg-green-100: #c8e6c9;
+  --color-mtg-green-200: #a5d6a7;
+  --color-mtg-green-300: #81c784;
+  --color-mtg-green-400: #66bb6a;
+  --color-mtg-green-500: #00733e;
+  --color-mtg-green-600: #005c32;
+  --color-mtg-green-700: #004526;
+  --color-mtg-green-800: #002e19;
+  --color-mtg-green-900: #00170d;
+
+  /* Colorless Mana - Gray */
+  --color-mtg-colorless-50: #f5f5f5;
+  --color-mtg-colorless-100: #e8e8e8;
+  --color-mtg-colorless-200: #d4d4d4;
+  --color-mtg-colorless-300: #b8b8b8;
+  --color-mtg-colorless-400: #9c9c9c;
+  --color-mtg-colorless-500: #8b8b8b;
+  --color-mtg-colorless-600: #6f6f6f;
+  --color-mtg-colorless-700: #535353;
+  --color-mtg-colorless-800: #383838;
+  --color-mtg-colorless-900: #1c1c1c;
+
+  /* ----------------------------------------
+     UI Colors - Design System
+     ---------------------------------------- */
+
+  /* Background Colors */
+  --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+
+  /* Foreground Colors */
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+
+  /* Primary - Purple/Blue (MTG card back inspired) */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  /* Secondary - Muted Gold */
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  /* Accent - Teal */
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* Destructive - Red */
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Border and Ring */
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  /* Card Surface */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  /* Muted Surface */
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* ----------------------------------------
+     Typography
+     ---------------------------------------- */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-heading: var(--font-cinzel), serif;
+
+  /* ----------------------------------------
+     Spacing & Radius
+     ---------------------------------------- */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* ----------------------------------------
+     Animations
+     ---------------------------------------- */
+  --animate-card-flip: card-flip 0.6s ease-in-out;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
+}
+
+/* ============================================
+   CSS Variables - Light Mode (Default)
+   ============================================ */
+:root {
+  /* Base UI Colors */
+  --background: hsl(0 0% 100%);
+  --background-secondary: hsl(220 14% 96%);
+  --foreground: hsl(224 71% 4%);
+  --foreground-muted: hsl(220 9% 46%);
+
+  /* Primary - Deep purple/blue */
+  --primary: hsl(262 83% 58%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* Secondary - Muted gold */
+  --secondary: hsl(45 93% 47%);
+  --secondary-foreground: hsl(0 0% 0%);
+
+  /* Accent - Teal */
+  --accent: hsl(174 72% 40%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  /* Destructive */
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* Borders and focus rings */
+  --border: hsl(220 13% 91%);
+  --ring: hsl(262 83% 58%);
+
+  /* Card surface */
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(224 71% 4%);
+
+  /* Muted surface */
+  --muted: hsl(220 14% 96%);
+  --muted-foreground: hsl(220 9% 46%);
+
+  /* Border radius */
+  --radius: 0.5rem;
+}
+
+/* ============================================
+   CSS Variables - Dark Mode
+   ============================================ */
+.dark {
+  /* Base UI Colors */
+  --background: hsl(224 71% 4%);
+  --background-secondary: hsl(220 14% 10%);
+  --foreground: hsl(0 0% 95%);
+  --foreground-muted: hsl(220 9% 60%);
+
+  /* Primary */
+  --primary: hsl(262 83% 68%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* Secondary */
+  --secondary: hsl(45 93% 57%);
+  --secondary-foreground: hsl(0 0% 0%);
+
+  /* Accent */
+  --accent: hsl(174 72% 50%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  /* Destructive */
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* Borders and focus rings */
+  --border: hsl(220 13% 20%);
+  --ring: hsl(262 83% 68%);
+
+  /* Card surface */
+  --card: hsl(224 71% 8%);
+  --card-foreground: hsl(0 0% 95%);
+
+  /* Muted surface */
+  --muted: hsl(220 14% 15%);
+  --muted-foreground: hsl(220 9% 60%);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   Keyframe Animations
+   ============================================ */
+@keyframes card-flip {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(180deg); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ============================================
+   Component Styles - MTG Mana Badges
+   ============================================ */
+.mana-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.mana-badge-w {
+  background-color: var(--color-mtg-white-500);
+  color: var(--color-mtg-black-800);
+}
+
+.mana-badge-u {
+  background-color: var(--color-mtg-blue-500);
+  color: white;
+}
+
+.mana-badge-b {
+  background-color: var(--color-mtg-black-500);
+  color: var(--color-mtg-white-500);
+}
+
+.mana-badge-r {
+  background-color: var(--color-mtg-red-500);
+  color: white;
+}
+
+.mana-badge-g {
+  background-color: var(--color-mtg-green-500);
+  color: white;
+}
+
+.mana-badge-c {
+  background-color: var(--color-mtg-colorless-500);
+  color: white;
+}
+
+/* ============================================
+   Component Styles - MTG Card Display
+   ============================================ */
+.mtg-card {
+  position: relative;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  aspect-ratio: 488 / 680; /* Standard MTG card ratio */
+}
+
+.mtg-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* ============================================
+   Utility Styles - MTG Guild Gradients
+   ============================================ */
+.gradient-azorius {
+  background: linear-gradient(to bottom right, var(--color-mtg-white-400), var(--color-mtg-blue-500));
+}
+
+.gradient-dimir {
+  background: linear-gradient(to bottom right, var(--color-mtg-blue-500), var(--color-mtg-black-500));
+}
+
+.gradient-rakdos {
+  background: linear-gradient(to bottom right, var(--color-mtg-black-500), var(--color-mtg-red-500));
+}
+
+.gradient-gruul {
+  background: linear-gradient(to bottom right, var(--color-mtg-red-500), var(--color-mtg-green-500));
+}
+
+.gradient-selesnya {
+  background: linear-gradient(to bottom right, var(--color-mtg-green-500), var(--color-mtg-white-400));
+}
+
+.gradient-orzhov {
+  background: linear-gradient(to bottom right, var(--color-mtg-white-400), var(--color-mtg-black-500));
+}
+
+.gradient-izzet {
+  background: linear-gradient(to bottom right, var(--color-mtg-blue-500), var(--color-mtg-red-500));
+}
+
+.gradient-golgari {
+  background: linear-gradient(to bottom right, var(--color-mtg-black-500), var(--color-mtg-green-500));
+}
+
+.gradient-boros {
+  background: linear-gradient(to bottom right, var(--color-mtg-red-500), var(--color-mtg-white-400));
+}
+
+.gradient-simic {
+  background: linear-gradient(to bottom right, var(--color-mtg-green-500), var(--color-mtg-blue-500));
+}
+
+.gradient-5color {
+  background: linear-gradient(
+    135deg,
+    var(--color-mtg-white-500) 0%,
+    var(--color-mtg-blue-500) 25%,
+    var(--color-mtg-black-500) 50%,
+    var(--color-mtg-red-500) 75%,
+    var(--color-mtg-green-500) 100%
+  );
+}
