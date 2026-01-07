@@ -8,5 +8,14 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider
+      // Refetch session on window focus to keep session fresh
+      refetchOnWindowFocus={true}
+      // Set base path for auth API routes
+      basePath="/api/auth"
+    >
+      {children}
+    </SessionProvider>
+  );
 }
