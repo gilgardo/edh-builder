@@ -20,6 +20,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime? @map("email_verified")
   image         String?
+  password      String?   // Hashed password for email/password auth (null for OAuth users)
 
   // User profile data
   username String? @unique

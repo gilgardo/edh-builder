@@ -2,16 +2,16 @@ import type { Metadata } from 'next';
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { LoginForm } from '@/components/auth/login-form';
+import { RegisterForm } from '@/components/auth/register-form';
 import { LoginButtons } from '@/components/auth/login-buttons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Sign In',
-  description: 'Sign in to EDH Builder to save your decks and join the community.',
+  title: 'Create Account',
+  description: 'Create an EDH Builder account to save your decks and join the community.',
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div className="mx-auto w-full max-w-md">
@@ -31,12 +31,12 @@ export default function LoginPage() {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
-            <CardDescription>Sign in to your account to continue</CardDescription>
+            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardDescription>Start building and sharing your Commander decks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Email/Password Form */}
-            <LoginForm callbackUrl="/decks" />
+            {/* Registration Form */}
+            <RegisterForm callbackUrl="/decks" />
 
             {/* Divider */}
             <div className="relative">
@@ -44,25 +44,17 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">Or sign up with</span>
               </div>
             </div>
 
             {/* OAuth Buttons */}
             <LoginButtons callbackUrl="/decks" />
-
-            {/* Guest browsing */}
-            <p className="text-center text-sm text-muted-foreground">
-              You can browse decks and build without signing in.{' '}
-              <Link href="/decks" className="text-primary hover:underline">
-                Browse decks
-              </Link>
-            </p>
           </CardContent>
         </Card>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          By signing in, you agree to our{' '}
+          By creating an account, you agree to our{' '}
           <Link href={'/terms' as Route} className="text-primary hover:underline">
             Terms of Service
           </Link>{' '}

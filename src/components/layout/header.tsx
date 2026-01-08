@@ -71,7 +71,7 @@ export function Header() {
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button size="sm" asChild>
-                <Link href="/login">Get Started</Link>
+                <Link href="/register">Get Started</Link>
               </Button>
             </div>
           )}
@@ -157,7 +157,7 @@ export function Header() {
                   ) : (
                     <div className="flex flex-col gap-2">
                       <Button asChild>
-                        <Link href="/login">Get Started</Link>
+                        <Link href="/register">Get Started</Link>
                       </Button>
                       <Button variant="outline" asChild>
                         <Link href="/login">Sign in</Link>
