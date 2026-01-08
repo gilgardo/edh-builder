@@ -1,29 +1,39 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Container } from '@/components/layout/container';
+import { DeckGallery } from '@/components/decks/deck-gallery';
 
 export const metadata: Metadata = {
-  title: 'Decks',
-  description: 'Browse Commander decks',
+  title: 'Browse Decks',
+  description: 'Browse and discover Magic: The Gathering Commander decks.',
 };
 
 export default function DecksPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Decks</h1>
-          <p className="mt-2 text-muted-foreground">Browse and discover Commander decks</p>
+    <div className="py-8">
+      <Container>
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Browse Decks</h1>
+            <p className="mt-2 text-muted-foreground">
+              Discover Commander decks from the community
+            </p>
+          </div>
+          <Button asChild className="gap-2">
+            <Link href="/decks/new">
+              <Plus className="h-4 w-4" />
+              Create Deck
+            </Link>
+          </Button>
         </div>
-        <Link
-          href="/decks/new"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          Create Deck
-        </Link>
-      </div>
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-muted-foreground">No decks found. Create your first deck to get started!</p>
-      </div>
+
+        {/* Deck Gallery */}
+        <DeckGallery />
+      </Container>
     </div>
   );
 }
