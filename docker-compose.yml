@@ -1,0 +1,92 @@
+services:
+  # Next.js Application (Development)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: edh-builder-app
+    ports:
+      - "3001:3000"
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Exclude node_modules (use container's node_modules)
+      - /app/node_modules
+      # Exclude .next build directory
+      - /app/.next
+      # Persist Prisma client between rebuilds
+      - prisma-client:/app/node_modules/.prisma
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://edh_user:edh_password@db:5432/edh_builder?schema=public
+      - NEXTAUTH_URL=http://localhost:3001
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}
+      - NEXT_PUBLIC_APP_URL=http://localhost:3001
+      # Optional OAuth (pass from .env file)
+      - GITHUB_ID=${GITHUB_ID:-}
+      - GITHUB_SECRET=${GITHUB_SECRET:-}
+      - GOOGLE_ID=${GOOGLE_ID:-}
+      - GOOGLE_SECRET=${GOOGLE_SECRET:-}
+      - DISCORD_ID=${DISCORD_ID:-}
+      - DISCORD_SECRET=${DISCORD_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - edh-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: edh-builder-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=edh_user
+      - POSTGRES_PASSWORD=edh_password
+      - POSTGRES_DB=edh_builder
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edh_user -d edh_builder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - edh-network
+    restart: unless-stopped
+
+  # Prisma Studio (Optional - for database inspection)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: edh-builder-prisma-studio
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://edh_user:edh_password@db:5432/edh_builder?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - edh-network
+    command: ["pnpm", "db:studio"]
+    profiles:
+      - tools
+    restart: unless-stopped
+
+networks:
+  edh-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  prisma-client:
+    driver: local
