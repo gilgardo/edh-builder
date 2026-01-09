@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncCardFromScryfall } from '@/lib/card-sync';
 import { AddCardToDeckSchema } from '@/schemas/deck.schema';
+import type { ScryfallCard } from '@/types/scryfall.types';
 
 interface RouteParams {
   params: Promise<{ deckId: string }>;
@@ -42,21 +44,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const data = parsed.data;
 
-    // Check if card exists in database
-    const card = await prisma.card.findUnique({
-      where: { id: data.cardId },
-    });
-
-    if (!card) {
-      return NextResponse.json({ error: 'Card not found' }, { status: 404 });
-    }
+    // Sync the Scryfall card to our database
+    // The Zod schema validates the shape, so we can safely cast to ScryfallCard
+    const card = await syncCardFromScryfall(data.scryfallCard as unknown as ScryfallCard);
 
     // Upsert the deck card relationship
     const deckCard = await prisma.deckCard.upsert({
       where: {
         deckId_cardId: {
           deckId,
-          cardId: data.cardId,
+          cardId: card.id,
         },
       },
       update: {
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
       create: {
         deckId,
-        cardId: data.cardId,
+        cardId: card.id,
         quantity: data.quantity,
         category: data.category,
       },
@@ -74,6 +71,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // If this is a commander, update the deck's commanderId
+    if (data.category === 'COMMANDER') {
+      await prisma.deck.update({
+        where: { id: deckId },
+        data: { commanderId: card.id },
+      });
+    }
+
     // Update deck's color identity based on cards
     const allDeckCards = await prisma.deckCard.findMany({
       where: { deckId },
@@ -81,7 +86,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     const colorIdentity = new Set<string>();
-    allDeckCards.forEach((dc) => {
+    allDeckCards.forEach((dc: { card: { colorIdentity: string | null } }) => {
       // colorIdentity is stored as comma-separated string in Card
       if (dc.card.colorIdentity) {
         dc.card.colorIdentity.split(',').forEach((c: string) => colorIdentity.add(c.trim()));
@@ -139,13 +144,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
     // Update deck's color identity
-    const allDeckCards = await prisma.deckCard.findMany({
+    const remainingDeckCards = await prisma.deckCard.findMany({
       where: { deckId },
       include: { card: true },
     });
 
     const colorIdentity = new Set<string>();
-    allDeckCards.forEach((dc) => {
+    remainingDeckCards.forEach((dc: { card: { colorIdentity: string | null } }) => {
       // colorIdentity is stored as comma-separated string in Card
       if (dc.card.colorIdentity) {
         dc.card.colorIdentity.split(',').forEach((c: string) => colorIdentity.add(c.trim()));

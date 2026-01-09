@@ -125,12 +125,10 @@ export default function DeckEditPage({ params }: PageProps) {
   const handleAddCard = useCallback(
     async (card: ScryfallCard) => {
       try {
-        // We need to create the card in our DB first if it doesn't exist
-        // For now, we'll use the scryfall ID as the card ID
-        // In a production app, you'd first POST to /api/cards to ensure the card exists
         await addCard.mutateAsync({
           deckId,
-          cardId: card.id, // This is the Scryfall ID - the API should handle card creation
+          scryfallCard: card,
+          category: 'MAIN',
         });
       } catch (error) {
         console.error('Failed to add card:', error);

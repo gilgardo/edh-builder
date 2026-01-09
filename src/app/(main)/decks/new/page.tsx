@@ -9,6 +9,7 @@ import { Search, ArrowRight, Loader2 } from 'lucide-react';
 
 import { useCreateDeck } from '@/hooks/use-decks';
 import { useCardSearch } from '@/hooks/use-card-search';
+import { useAddCardToDeck } from '@/hooks/use-deck-cards';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +44,7 @@ export default function CreateDeckPage() {
   const [selectedCommander, setSelectedCommander] = useState<ScryfallCard | null>(null);
 
   const createDeck = useCreateDeck();
+  const addCardToDeck = useAddCardToDeck();
 
   const { data: searchResults, isLoading: isSearching } = useCardSearch(
     { query: commanderQuery, isCommander: true },
@@ -69,13 +71,19 @@ export default function CreateDeckPage() {
     if (!selectedCommander) return;
 
     try {
-      // Note: In a real app, we'd first save the commander card to our DB
-      // and get its ID. For now, we'll create the deck without a commander ID.
+      // 1. Create the empty deck first
       const result = await createDeck.mutateAsync({
         name: data.name,
         description: data.description || undefined,
         format: data.format,
         isPublic: data.isPublic,
+      });
+
+      // 2. Add the commander to the deck (this syncs the card to DB and sets commanderId)
+      await addCardToDeck.mutateAsync({
+        deckId: result.deck.id,
+        scryfallCard: selectedCommander,
+        category: 'COMMANDER',
       });
 
       router.push(`/decks/${result.deck.id}/edit`);

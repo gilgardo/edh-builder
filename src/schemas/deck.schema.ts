@@ -20,8 +20,59 @@ export const CreateDeckSchema = z.object({
 
 export const UpdateDeckSchema = CreateDeckSchema.partial();
 
+// Schema for Scryfall card data (subset needed for syncing)
+export const ScryfallCardSchema = z.object({
+  id: z.string(),
+  oracle_id: z.string(),
+  name: z.string(),
+  mana_cost: z.string().optional(),
+  cmc: z.number(),
+  type_line: z.string(),
+  oracle_text: z.string().optional(),
+  colors: z.array(z.string()).optional(),
+  color_identity: z.array(z.string()),
+  power: z.string().optional(),
+  toughness: z.string().optional(),
+  loyalty: z.string().optional(),
+  legalities: z.object({
+    commander: z.string(),
+  }).passthrough(),
+  image_uris: z.object({
+    small: z.string(),
+    normal: z.string(),
+    large: z.string(),
+    png: z.string(),
+    art_crop: z.string(),
+    border_crop: z.string(),
+  }).optional(),
+  card_faces: z.array(z.object({
+    image_uris: z.object({
+      small: z.string(),
+      normal: z.string(),
+      large: z.string(),
+      png: z.string(),
+      art_crop: z.string(),
+      border_crop: z.string(),
+    }).optional(),
+  }).passthrough()).optional(),
+  set: z.string(),
+  set_name: z.string(),
+  rarity: z.string(),
+  prices: z.object({
+    usd: z.string().nullable().optional(),
+    tix: z.string().nullable().optional(),
+  }).passthrough(),
+  // Additional required fields from ScryfallCard type
+  uri: z.string(),
+  scryfall_uri: z.string(),
+  layout: z.string(),
+  keywords: z.array(z.string()).optional(),
+  artist: z.string().optional(),
+  released_at: z.string().optional(),
+});
+
 export const AddCardToDeckSchema = z.object({
-  cardId: z.string().cuid(),
+  scryfallCard: ScryfallCardSchema,
   quantity: z.number().int().min(1).max(99).default(1),
   category: CardCategorySchema.default('MAIN'),
 });

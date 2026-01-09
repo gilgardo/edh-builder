@@ -2,10 +2,11 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CardCategory } from '@/schemas/deck.schema';
+import type { ScryfallCard } from '@/types/scryfall.types';
 
 interface AddCardData {
   deckId: string;
-  cardId: string;
+  scryfallCard: ScryfallCard;
   quantity?: number;
   category?: CardCategory;
 }
@@ -15,11 +16,11 @@ interface RemoveCardData {
   cardId: string;
 }
 
-async function addCardToDeck({ deckId, cardId, quantity = 1, category = 'MAIN' }: AddCardData) {
+async function addCardToDeck({ deckId, scryfallCard, quantity = 1, category = 'MAIN' }: AddCardData) {
   const response = await fetch(`/api/decks/${deckId}/cards`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cardId, quantity, category }),
+    body: JSON.stringify({ scryfallCard, quantity, category }),
   });
   if (!response.ok) {
     const error = await response.json();
