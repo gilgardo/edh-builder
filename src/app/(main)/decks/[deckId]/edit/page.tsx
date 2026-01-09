@@ -2,14 +2,12 @@
 
 import { use, useState, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
   Search,
   X,
   Plus,
-  Trash2,
   Eye,
   Settings,
   Layers,
@@ -23,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -45,7 +42,10 @@ import { Separator } from '@/components/ui/separator';
 import { Container } from '@/components/layout/container';
 import { CardImage } from '@/components/cards/card-image';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
-import { ManaCost } from '@/components/cards/mana-cost';
+import { MobileCardSearchBar } from '@/components/cards/mobile-card-search-bar';
+import { CardSearchSheet } from '@/components/cards/card-search-sheet';
+import { CardSearchGrid } from '@/components/cards/card-search-grid';
+import { DeckCardList } from '@/components/decks/deck-card-list';
 import type { ScryfallCard } from '@/types/scryfall.types';
 import { cn } from '@/lib/utils';
 
@@ -97,10 +97,16 @@ export default function DeckEditPage({ params }: PageProps) {
   const { deckId } = use(params);
   const { data: session } = useSession();
 
+  // Desktop search state
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState('');
+
+  // Mobile-specific state
+  const [activeTab, setActiveTab] = useState<'search' | 'decklist'>('decklist');
+  const [searchSheetOpen, setSearchSheetOpen] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
 
   const { data, isLoading, error } = useDeck(deckId);
   const updateDeck = useUpdateDeck();
@@ -120,6 +126,15 @@ export default function DeckEditPage({ params }: PageProps) {
       type: selectedType || undefined,
     },
     searchQuery.length >= 2
+  );
+
+  // Mobile search results (uses mobileSearchQuery)
+  const { data: mobileSearchResults, isLoading: isMobileSearching } = useCardSearch(
+    {
+      query: mobileSearchQuery,
+      colorIdentity: colorIdentityFilter,
+    },
+    mobileSearchQuery.length >= 2
   );
 
   const handleAddCard = useCallback(
@@ -210,26 +225,25 @@ export default function DeckEditPage({ params }: PageProps) {
   }
 
   const cardGroups = groupCardsByType(deck.cards);
-  const totalCards = deck.cards.reduce((acc, c) => acc + c.quantity, 0);
-  const commanderImageUris = deck.commander?.imageUris as { normal?: string } | null;
+  const totalCards = deck.cards.reduce((acc: number, c: { quantity: number }) => acc + c.quantity, 0);
 
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Fixed Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0">
         <Container className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <Link
               href={`/decks/${deckId}`}
               className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              <ArrowLeft className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Back</span>
             </Link>
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 hidden md:block" />
             <div>
-              <h1 className="font-semibold">{deck.name}</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="font-semibold text-sm md:text-base truncate max-w-[150px] md:max-w-none">{deck.name}</h1>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {totalCards}/100 cards
               </p>
             </div>
@@ -237,9 +251,9 @@ export default function DeckEditPage({ params }: PageProps) {
           <div className="flex items-center gap-2">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <Button variant="outline" size="sm" className="h-8 md:h-9">
+                  <Settings className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Settings</span>
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -253,20 +267,74 @@ export default function DeckEditPage({ params }: PageProps) {
               </SheetContent>
             </Sheet>
             <Link href={`/decks/${deckId}`}>
-              <Button variant="outline" size="sm">
-                <Eye className="mr-2 h-4 w-4" />
-                View
+              <Button variant="outline" size="sm" className="h-8 md:h-9">
+                <Eye className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">View</span>
               </Button>
             </Link>
           </div>
         </Container>
       </div>
 
-      {/* Main Editor */}
-      <div className="flex h-[calc(100%-4rem)]">
+      {/* Mobile: Compact Searchbar */}
+      <div className="md:hidden px-4 py-3 border-b shrink-0">
+        <MobileCardSearchBar
+          value={mobileSearchQuery}
+          onChange={setMobileSearchQuery}
+          onOpenFullSearch={() => setSearchSheetOpen(true)}
+          onSelectSuggestion={(suggestion) => {
+            setMobileSearchQuery(suggestion);
+            setActiveTab('search');
+          }}
+        />
+      </div>
+
+      {/* Mobile: Tab Navigation */}
+      <div className="md:hidden border-b shrink-0">
+        <div className="flex">
+          <button
+            type="button"
+            onClick={() => setActiveTab('search')}
+            className={cn(
+              'flex-1 py-3 text-sm font-medium text-center transition-colors relative',
+              activeTab === 'search'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Search className="h-4 w-4 inline-block mr-1.5" />
+            Search
+            {activeTab === 'search' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('decklist')}
+            className={cn(
+              'flex-1 py-3 text-sm font-medium text-center transition-colors relative',
+              activeTab === 'decklist'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Layers className="h-4 w-4 inline-block mr-1.5" />
+            Deck
+            <Badge variant="secondary" className="ml-1.5 text-xs">
+              {totalCards}
+            </Badge>
+            {activeTab === 'decklist' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop: Two-panel layout (hidden on mobile) */}
+      <div className="hidden md:flex flex-1 min-h-0">
         {/* Left Panel - Card Search */}
         <div className="w-1/2 border-r overflow-hidden flex flex-col">
-          <div className="p-4 border-b space-y-4">
+          <div className="p-4 border-b space-y-4 shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -348,7 +416,7 @@ export default function DeckEditPage({ params }: PageProps) {
           </div>
           <div className="flex-1 overflow-auto p-4">
             {isSearching && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="aspect-[488/680] rounded-lg" />
                 ))}
@@ -356,7 +424,7 @@ export default function DeckEditPage({ params }: PageProps) {
             )}
 
             {!isSearching && searchResults?.cards && searchResults.cards.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
                 {searchResults.cards.map((card) => (
                   <button
                     key={card.id}
@@ -398,96 +466,60 @@ export default function DeckEditPage({ params }: PageProps) {
 
         {/* Right Panel - Deck List */}
         <div className="w-1/2 overflow-hidden flex flex-col">
-          <div className="p-4 border-b flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Layers className="h-5 w-5 text-muted-foreground" />
-              <span className="font-medium">Deck List</span>
-              <Badge variant="secondary">{totalCards}/100</Badge>
-            </div>
-            <ColorIdentityBadges colors={deck.colorIdentity} size="sm" />
-          </div>
-          <div className="flex-1 overflow-auto p-4 space-y-4">
-            {/* Commander */}
-            {deck.commander && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Commander</CardTitle>
-                </CardHeader>
-                <CardContent className="flex gap-3">
-                  {commanderImageUris?.normal && (
-                    <div className="relative aspect-[488/680] w-20 overflow-hidden rounded">
-                      <Image
-                        src={commanderImageUris.normal}
-                        alt={deck.commander.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium">{deck.commander.name}</p>
-                    <p className="text-xs text-muted-foreground">{deck.commander.typeLine}</p>
-                    {deck.commander.manaCost && (
-                      <div className="mt-1">
-                        <ManaCost cost={deck.commander.manaCost} size="sm" />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Card Groups */}
-            {Object.entries(cardGroups).map(([type, cards]) => (
-              <div key={type}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">{type}</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {cards.reduce((acc, c) => acc + c.quantity, 0)}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  {cards.map((deckCard) => (
-                    <div
-                      key={deckCard.card.id}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group"
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-sm text-muted-foreground w-5">{deckCard.quantity}x</span>
-                        <span className="text-sm truncate">{deckCard.card.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {deckCard.card.manaCost && (
-                          <ManaCost cost={deckCard.card.manaCost} size="sm" />
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveCard(deckCard.card.id)}
-                          disabled={removeCard.isPending}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {deck.cards.length === 0 && (
-              <div className="py-12 text-center">
-                <Layers className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 font-semibold">No cards yet</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Search for cards on the left to add them to your deck
-                </p>
-              </div>
-            )}
-          </div>
+          <DeckCardList
+            commander={deck.commander}
+            cardGroups={cardGroups}
+            totalCards={totalCards}
+            colorIdentity={deck.colorIdentity}
+            onRemoveCard={handleRemoveCard}
+            isRemoving={removeCard.isPending}
+          />
         </div>
       </div>
+
+      {/* Mobile: Single content area based on tab */}
+      <div className="md:hidden flex-1 overflow-auto min-h-0">
+        {activeTab === 'search' ? (
+          <CardSearchGrid
+            searchQuery={mobileSearchQuery}
+            searchResults={mobileSearchResults}
+            isSearching={isMobileSearching}
+            onAddCard={handleAddCard}
+            isAdding={addCard.isPending}
+          />
+        ) : (
+          <DeckCardList
+            commander={deck.commander}
+            cardGroups={cardGroups}
+            totalCards={totalCards}
+            colorIdentity={deck.colorIdentity}
+            onRemoveCard={handleRemoveCard}
+            isRemoving={removeCard.isPending}
+            showHeader={false}
+          />
+        )}
+      </div>
+
+      {/* Mobile: Floating Action Button to open search */}
+      {activeTab === 'decklist' && (
+        <Button
+          onClick={() => setSearchSheetOpen(true)}
+          className="md:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
+      {/* Mobile: Full search modal */}
+      <CardSearchSheet
+        open={searchSheetOpen}
+        onOpenChange={setSearchSheetOpen}
+        colorIdentityFilter={colorIdentityFilter}
+        onAddCard={handleAddCard}
+        isAdding={addCard.isPending}
+        initialQuery={mobileSearchQuery}
+      />
     </div>
   );
 }
@@ -559,16 +591,27 @@ function DeckSettingsForm({ deck, onUpdate, isUpdating }: DeckSettingsFormProps)
 
 function DeckEditSkeleton() {
   return (
-    <div className="flex h-[calc(100vh-8rem)]">
-      <div className="w-1/2 border-r p-4">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)]">
+      {/* Mobile skeleton */}
+      <div className="md:hidden p-4 space-y-4">
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[488/680]" />
+          ))}
+        </div>
+      </div>
+      {/* Desktop skeleton */}
+      <div className="hidden md:block w-1/2 border-r p-4">
         <Skeleton className="h-10 mb-4" />
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="aspect-[488/680]" />
           ))}
         </div>
       </div>
-      <div className="w-1/2 p-4">
+      <div className="hidden md:block w-1/2 p-4">
         <Skeleton className="h-10 mb-4" />
         <div className="space-y-2">
           {Array.from({ length: 10 }).map((_, i) => (
