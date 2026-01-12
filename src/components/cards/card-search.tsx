@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
-import { useCardSearch, useCardSearchState } from '@/hooks/use-card-search';
+import { CmcOperator, useCardSearch, useCardSearchState } from '@/hooks/use-card-search';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,31 +60,25 @@ export function CardSearch({
   className,
 }: CardSearchProps) {
   const [showFilters, setShowFilters] = useState(false);
-  const searchState = useCardSearchState();
+  const { params, dispatch } = useCardSearchState();
+
+  dispatch({
+    type: 'setBaseParams',
+    baseParams: {
+      colorIdentity: colorIdentityFilter,
+      isCommander: commanderOnly,
+    },
+  });
 
   // Apply color identity filter if provided
-  const params = {
-    ...searchState.params,
-    colorIdentity: colorIdentityFilter ?? searchState.params.colorIdentity,
-    isCommander: commanderOnly || searchState.params.isCommander,
+  const { query, colors, cmcOperator, rarity, page, cmc, type } = {
+    ...params,
   };
 
   const { data, isLoading, isFetching } = useCardSearch(params);
 
-  const handleSearch = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      searchState.setPage(1);
-    },
-    [searchState]
-  );
-
-  const toggleColor = (color: string) => {
-    const newColors = searchState.colors.includes(color)
-      ? searchState.colors.filter((c) => c !== color)
-      : [...searchState.colors, color];
-    searchState.setColors(newColors);
-    searchState.setPage(1);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
   };
 
   return (
@@ -92,18 +86,18 @@ export function CardSearch({
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
-            value={searchState.query}
-            onChange={(e) => searchState.setQuery(e.target.value)}
+            value={query}
+            onChange={(e) => dispatch({ type: 'setQuery', query: e.target.value })}
             placeholder="Search cards..."
             className="pl-10"
           />
-          {searchState.query && (
+          {query && (
             <button
               type="button"
-              onClick={() => searchState.setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => dispatch({ type: 'setQuery', query: '' })}
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
             >
               <X className="h-4 w-4" />
             </button>
@@ -124,7 +118,7 @@ export function CardSearch({
 
       {/* Filters */}
       {showFilters && (
-        <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+        <div className="border-border bg-card space-y-4 rounded-lg border p-4">
           {/* Color Filter */}
           <div>
             <label className="mb-2 block text-sm font-medium">Colors</label>
@@ -133,12 +127,12 @@ export function CardSearch({
                 <button
                   key={color.value}
                   type="button"
-                  onClick={() => toggleColor(color.value)}
+                  onClick={() => dispatch({ type: 'toggleColor', color: color.value })}
                   className={cn(
                     'h-8 w-8 rounded-full text-sm font-bold transition-all',
                     color.className,
-                    searchState.colors.includes(color.value)
-                      ? 'ring-2 ring-ring ring-offset-2'
+                    colors?.includes(color.value)
+                      ? 'ring-ring ring-2 ring-offset-2'
                       : 'opacity-50 hover:opacity-75'
                   )}
                 >
@@ -151,7 +145,7 @@ export function CardSearch({
           {/* Type Filter */}
           <div>
             <label className="mb-2 block text-sm font-medium">Card Type</label>
-            <Select value={searchState.type} onValueChange={searchState.setType}>
+            <Select value={type} onValueChange={(e) => dispatch({ type: 'setType', cardType: e })}>
               <SelectTrigger>
                 <SelectValue placeholder="Any type" />
               </SelectTrigger>
@@ -172,9 +166,9 @@ export function CardSearch({
               <label className="mb-2 block text-sm font-medium">CMC</label>
               <div className="flex gap-2">
                 <Select
-                  value={searchState.cmcOperator}
+                  value={cmcOperator}
                   onValueChange={(v) =>
-                    searchState.setCmcOperator(v as 'eq' | 'lt' | 'lte' | 'gt' | 'gte')
+                    dispatch({ type: 'setCmc', cmcSearch: { cmcOperator: v as CmcOperator, cmc } })
                   }
                 >
                   <SelectTrigger className="w-20">
@@ -192,9 +186,12 @@ export function CardSearch({
                   type="number"
                   min={0}
                   max={16}
-                  value={searchState.cmc ?? ''}
+                  value={cmc ?? ''}
                   onChange={(e) =>
-                    searchState.setCmc(e.target.value ? parseInt(e.target.value, 10) : undefined)
+                    dispatch({
+                      type: 'setCmc',
+                      cmcSearch: { cmc: Number(e.target.value), cmcOperator },
+                    })
                   }
                   placeholder="Any"
                   className="w-20"
@@ -205,7 +202,7 @@ export function CardSearch({
             {/* Rarity Filter */}
             <div className="flex-1">
               <label className="mb-2 block text-sm font-medium">Rarity</label>
-              <Select value={searchState.rarity} onValueChange={searchState.setRarity}>
+              <Select value={rarity} onValueChange={() => {}}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any rarity" />
                 </SelectTrigger>
@@ -226,7 +223,7 @@ export function CardSearch({
             type="button"
             variant="outline"
             size="sm"
-            onClick={searchState.resetFilters}
+            onClick={() => dispatch({ type: 'reset' })}
             className="w-full"
           >
             Reset Filters
@@ -235,28 +232,28 @@ export function CardSearch({
       )}
 
       {/* Active Filters */}
-      {(searchState.colors.length > 0 || searchState.type || searchState.rarity) && (
+      {(colors?.length > 0 || type || rarity) && (
         <div className="flex flex-wrap gap-2">
-          {searchState.colors.map((color) => (
+          {colors.map((color) => (
             <Badge key={color} variant="secondary" className="gap-1">
               {color}
-              <button onClick={() => toggleColor(color)}>
+              <button onClick={() => dispatch({ type: 'toggleColor', color })}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
           ))}
-          {searchState.type && (
+          {type && (
             <Badge variant="secondary" className="gap-1">
-              {searchState.type}
-              <button onClick={() => searchState.setType('')}>
+              {type}
+              <button onClick={() => ''}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
           )}
-          {searchState.rarity && (
+          {rarity && (
             <Badge variant="secondary" className="gap-1">
-              {searchState.rarity}
-              <button onClick={() => searchState.setRarity('')}>
+              {rarity}
+              <button onClick={() => ''}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -270,7 +267,7 @@ export function CardSearch({
         {isLoading && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[488/680] rounded-lg" />
+              <Skeleton key={i} className="aspect-488/680 rounded-lg" />
             ))}
           </div>
         )}
@@ -278,7 +275,7 @@ export function CardSearch({
         {/* Results Grid */}
         {!isLoading && data?.cards && data.cards.length > 0 && (
           <>
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="text-muted-foreground flex items-center justify-between text-sm">
               <span>
                 {data.total.toLocaleString()} {data.total === 1 ? 'card' : 'cards'} found
               </span>
@@ -291,16 +288,14 @@ export function CardSearch({
                   key={card.id}
                   type="button"
                   onClick={() => onCardSelect?.(card)}
-                  className="group relative overflow-hidden rounded-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="group focus:ring-ring relative overflow-hidden rounded-lg transition-transform hover:scale-105 focus:ring-2 focus:outline-none"
                 >
                   <CardImage card={card} size="normal" />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                     <p className="truncate text-sm font-medium text-white">{card.name}</p>
                     <div className="mt-1 flex items-center justify-between">
                       <ColorIdentityBadges colors={card.color_identity} size="sm" />
-                      {getCardManaCost(card) && (
-                        <ManaCost cost={getCardManaCost(card)} size="sm" />
-                      )}
+                      {getCardManaCost(card) && <ManaCost cost={getCardManaCost(card)} size="sm" />}
                     </div>
                   </div>
                 </button>
@@ -312,7 +307,7 @@ export function CardSearch({
               <div className="flex justify-center">
                 <Button
                   variant="outline"
-                  onClick={() => searchState.setPage(searchState.page + 1)}
+                  onClick={() => dispatch({ type: 'setPage', page: page ? page : 0 + 1 })}
                   disabled={isFetching}
                 >
                   Load More
@@ -324,21 +319,17 @@ export function CardSearch({
         )}
 
         {/* Empty State */}
-        {!isLoading && data?.cards?.length === 0 && searchState.query && (
+        {!isLoading && data?.cards?.length === 0 && query && (
           <div className="py-12 text-center">
             <p className="text-muted-foreground">No cards found matching your search.</p>
-            <Button
-              variant="link"
-              onClick={searchState.resetFilters}
-              className="mt-2"
-            >
+            <Button variant="link" onClick={() => dispatch({ type: 'reset' })} className="mt-2">
               Clear filters
             </Button>
           </div>
         )}
 
         {/* Initial State */}
-        {!isLoading && !data && !searchState.query && (
+        {!isLoading && !data && !query && (
           <div className="py-12 text-center">
             <p className="text-muted-foreground">Enter a search term to find cards.</p>
           </div>

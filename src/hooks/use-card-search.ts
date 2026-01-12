@@ -1,16 +1,24 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState, useMemo } from 'react';
+import { useMemo, useReducer } from 'react';
 import type { ScryfallCard } from '@/types/scryfall.types';
+
+export enum CmcOperator {
+  eq = 'eq',
+  lt = 'lt',
+  lte = 'lte',
+  gt = 'gt',
+  gte = 'gte',
+}
 
 interface SearchParams {
   query?: string;
-  colors?: string[];
+  colors: string[];
   colorIdentity?: string[];
   type?: string;
   cmc?: number;
-  cmcOperator?: 'eq' | 'lt' | 'lte' | 'gt' | 'gte';
+  cmcOperator: CmcOperator;
   rarity?: string;
   isCommander?: boolean;
   page?: number;
@@ -28,7 +36,8 @@ async function searchCards(params: SearchParams): Promise<SearchResult> {
 
   if (params.query) searchParams.set('q', params.query);
   if (params.colors?.length) searchParams.set('colors', params.colors.join(''));
-  if (params.colorIdentity?.length) searchParams.set('colorIdentity', params.colorIdentity.join(''));
+  if (params.colorIdentity?.length)
+    searchParams.set('colorIdentity', params.colorIdentity.join(''));
   if (params.type) searchParams.set('type', params.type);
   if (params.cmc !== undefined) searchParams.set('cmc', params.cmc.toString());
   if (params.cmcOperator) searchParams.set('cmcOp', params.cmcOperator);
@@ -45,7 +54,7 @@ async function searchCards(params: SearchParams): Promise<SearchResult> {
 }
 
 async function autocompleteCards(query: string): Promise<string[]> {
-  if (query.length < 2) return [];
+  if (query.length < 3) return [];
 
   const response = await fetch(`/api/cards?q=${encodeURIComponent(query)}&autocomplete=true`);
   if (!response.ok) return [];
@@ -55,10 +64,7 @@ async function autocompleteCards(query: string): Promise<string[]> {
 }
 
 export function useCardSearch(params: SearchParams, enabled = true) {
-  const queryKey = useMemo(
-    () => ['cards', 'search', params],
-    [params]
-  );
+  const queryKey = useMemo(() => ['cards', 'search', params], [params]);
 
   return useQuery({
     queryKey,
@@ -77,64 +83,68 @@ export function useCardAutocomplete(query: string) {
     staleTime: 60 * 1000, // 1 minute
   });
 }
+export const baseSearchParams: SearchParams = {
+  query: '',
+  colors: [],
+  colorIdentity: [],
+  type: '',
+  cmc: undefined,
+  cmcOperator: CmcOperator.eq,
+  rarity: '',
+  isCommander: false,
+  page: 1,
+};
+
+type SearchAction =
+  | { type: 'setQuery'; query: string }
+  | { type: 'setBaseParams'; baseParams: { colorIdentity: string[]; isCommander: boolean } }
+  | { type: 'setColors'; colors: string[] }
+  | { type: 'toggleColor'; color: string }
+  | { type: 'setType'; cardType: string }
+  | { type: 'setCmc'; cmcSearch: { cmc?: number; cmcOperator: CmcOperator } }
+  | { type: 'setPage'; page: number }
+  | { type: 'reset' };
+
+const searchReducer = (state: SearchParams, action: SearchAction): SearchParams => {
+  switch (action.type) {
+    case 'setQuery':
+      return { ...state, query: action.query, page: 1 };
+
+    case 'setBaseParams':
+      return { ...state, ...action.baseParams };
+
+    case 'setColors':
+      return { ...state, colors: action.colors, page: 1 };
+
+    case 'toggleColor':
+      const colors = state.colors;
+      const newColors = colors.includes(action.color)
+        ? colors.filter((c) => c !== action.color)
+        : [...colors, action.color];
+      return { ...state, colors: newColors };
+
+    case 'setType':
+      return { ...state, type: action.cardType, page: 1 };
+
+    case 'setCmc':
+      return { ...state, ...action.cmcSearch, page: 1 };
+
+    case 'setPage':
+      return { ...state, page: action.page };
+
+    case 'reset':
+      return baseSearchParams;
+
+    default:
+      return state;
+  }
+};
 
 export function useCardSearchState() {
-  const [query, setQuery] = useState('');
-  const [colors, setColors] = useState<string[]>([]);
-  const [colorIdentity, setColorIdentity] = useState<string[]>([]);
-  const [type, setType] = useState('');
-  const [cmc, setCmc] = useState<number | undefined>(undefined);
-  const [cmcOperator, setCmcOperator] = useState<'eq' | 'lt' | 'lte' | 'gt' | 'gte'>('eq');
-  const [rarity, setRarity] = useState('');
-  const [isCommander, setIsCommander] = useState(false);
-  const [page, setPage] = useState(1);
-
-  const params = useMemo<SearchParams>(
-    () => ({
-      query: query || undefined,
-      colors: colors.length ? colors : undefined,
-      colorIdentity: colorIdentity.length ? colorIdentity : undefined,
-      type: type || undefined,
-      cmc,
-      cmcOperator,
-      rarity: rarity || undefined,
-      isCommander: isCommander || undefined,
-      page,
-    }),
-    [query, colors, colorIdentity, type, cmc, cmcOperator, rarity, isCommander, page]
-  );
-
-  const resetFilters = () => {
-    setQuery('');
-    setColors([]);
-    setColorIdentity([]);
-    setType('');
-    setCmc(undefined);
-    setRarity('');
-    setIsCommander(false);
-    setPage(1);
-  };
+  const [searchParams, dispatch] = useReducer(searchReducer, baseSearchParams);
 
   return {
-    params,
-    query,
-    setQuery,
-    colors,
-    setColors,
-    colorIdentity,
-    setColorIdentity,
-    type,
-    setType,
-    cmc,
-    setCmc,
-    cmcOperator,
-    setCmcOperator,
-    rarity,
-    setRarity,
-    isCommander,
-    setIsCommander,
-    page,
-    setPage,
-    resetFilters,
+    params: searchParams,
+    dispatch,
   };
 }
