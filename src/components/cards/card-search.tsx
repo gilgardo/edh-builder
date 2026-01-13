@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
-import { CmcOperator, useCardSearch, useCardSearchState } from '@/hooks/use-card-search';
+import { CmcOperator, useCardSearch } from '@/hooks/use-card-search';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,22 +60,30 @@ export function CardSearch({
   className,
 }: CardSearchProps) {
   const [showFilters, setShowFilters] = useState(false);
-  const { params, dispatch } = useCardSearchState();
+  const {
+    cards,
+    total,
+    hasMore,
+    isLoading,
+    isFetching,
+    params,
+    setQuery,
+    toggleColor,
+    setType,
+    setCmc,
+    setRarity,
+    nextPage,
+    reset,
+    setBaseParams,
+  } = useCardSearch();
 
-  dispatch({
-    type: 'setBaseParams',
-    baseParams: {
-      colorIdentity: colorIdentityFilter,
-      isCommander: commanderOnly,
-    },
-  });
-
-  // Apply color identity filter if provided
-  const { query, colors, cmcOperator, rarity, page, cmc, type } = {
-    ...params,
-  };
-
-  const { data, isLoading, isFetching } = useCardSearch(params);
+  // Set base params when colorIdentityFilter or commanderOnly changes
+  useEffect(() => {
+    reset();
+    if (colorIdentityFilter || commanderOnly) {
+      setBaseParams(colorIdentityFilter || [], commanderOnly);
+    }
+  }, [colorIdentityFilter, commanderOnly, reset, setBaseParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,15 +96,15 @@ export function CardSearch({
         <div className="relative flex-1">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
-            value={query}
-            onChange={(e) => dispatch({ type: 'setQuery', query: e.target.value })}
+            value={params.query || ''}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search cards..."
             className="pl-10"
           />
-          {query && (
+          {params.query && (
             <button
               type="button"
-              onClick={() => dispatch({ type: 'setQuery', query: '' })}
+              onClick={() => setQuery('')}
               className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
             >
               <X className="h-4 w-4" />
@@ -127,11 +135,11 @@ export function CardSearch({
                 <button
                   key={color.value}
                   type="button"
-                  onClick={() => dispatch({ type: 'toggleColor', color: color.value })}
+                  onClick={() => toggleColor(color.value)}
                   className={cn(
                     'h-8 w-8 rounded-full text-sm font-bold transition-all',
                     color.className,
-                    colors?.includes(color.value)
+                    params.colors.includes(color.value)
                       ? 'ring-ring ring-2 ring-offset-2'
                       : 'opacity-50 hover:opacity-75'
                   )}
@@ -145,7 +153,7 @@ export function CardSearch({
           {/* Type Filter */}
           <div>
             <label className="mb-2 block text-sm font-medium">Card Type</label>
-            <Select value={type} onValueChange={(e) => dispatch({ type: 'setType', cardType: e })}>
+            <Select value={params.type || ''} onValueChange={setType}>
               <SelectTrigger>
                 <SelectValue placeholder="Any type" />
               </SelectTrigger>
@@ -166,9 +174,9 @@ export function CardSearch({
               <label className="mb-2 block text-sm font-medium">CMC</label>
               <div className="flex gap-2">
                 <Select
-                  value={cmcOperator}
+                  value={params.cmcOperator}
                   onValueChange={(v) =>
-                    dispatch({ type: 'setCmc', cmcSearch: { cmcOperator: v as CmcOperator, cmc } })
+                    setCmc(params.cmc, v as CmcOperator)
                   }
                 >
                   <SelectTrigger className="w-20">
@@ -186,12 +194,9 @@ export function CardSearch({
                   type="number"
                   min={0}
                   max={16}
-                  value={cmc ?? ''}
+                  value={params.cmc ?? ''}
                   onChange={(e) =>
-                    dispatch({
-                      type: 'setCmc',
-                      cmcSearch: { cmc: Number(e.target.value), cmcOperator },
-                    })
+                    setCmc(Number(e.target.value), params.cmcOperator)
                   }
                   placeholder="Any"
                   className="w-20"
@@ -202,7 +207,7 @@ export function CardSearch({
             {/* Rarity Filter */}
             <div className="flex-1">
               <label className="mb-2 block text-sm font-medium">Rarity</label>
-              <Select value={rarity} onValueChange={() => {}}>
+              <Select value={params.rarity || ''} onValueChange={setRarity}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any rarity" />
                 </SelectTrigger>
@@ -223,7 +228,7 @@ export function CardSearch({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => dispatch({ type: 'reset' })}
+            onClick={() => reset()}
             className="w-full"
           >
             Reset Filters
@@ -232,28 +237,28 @@ export function CardSearch({
       )}
 
       {/* Active Filters */}
-      {(colors?.length > 0 || type || rarity) && (
+      {(params.colors.length > 0 || params.type || params.rarity) && (
         <div className="flex flex-wrap gap-2">
-          {colors.map((color) => (
+          {params.colors.map((color: string) => (
             <Badge key={color} variant="secondary" className="gap-1">
               {color}
-              <button onClick={() => dispatch({ type: 'toggleColor', color })}>
+              <button onClick={() => toggleColor(color)}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
           ))}
-          {type && (
+          {params.type && (
             <Badge variant="secondary" className="gap-1">
-              {type}
-              <button onClick={() => ''}>
+              {params.type}
+              <button onClick={() => setType('')}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
           )}
-          {rarity && (
+          {params.rarity && (
             <Badge variant="secondary" className="gap-1">
-              {rarity}
-              <button onClick={() => ''}>
+              {params.rarity}
+              <button onClick={() => setRarity('')}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -273,17 +278,17 @@ export function CardSearch({
         )}
 
         {/* Results Grid */}
-        {!isLoading && data?.cards && data.cards.length > 0 && (
+        {!isLoading && cards && cards.length > 0 && (
           <>
             <div className="text-muted-foreground flex items-center justify-between text-sm">
               <span>
-                {data.total.toLocaleString()} {data.total === 1 ? 'card' : 'cards'} found
+                {total.toLocaleString()} {total === 1 ? 'card' : 'cards'} found
               </span>
               {isFetching && <span className="animate-pulse">Updating...</span>}
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {data.cards.map((card) => (
+              {cards.map((card: ScryfallCard) => (
                 <button
                   key={card.id}
                   type="button"
@@ -303,11 +308,11 @@ export function CardSearch({
             </div>
 
             {/* Pagination */}
-            {data.hasMore && (
+            {hasMore && (
               <div className="flex justify-center">
                 <Button
                   variant="outline"
-                  onClick={() => dispatch({ type: 'setPage', page: page ? page : 0 + 1 })}
+                  onClick={() => nextPage()}
                   disabled={isFetching}
                 >
                   Load More
@@ -319,17 +324,17 @@ export function CardSearch({
         )}
 
         {/* Empty State */}
-        {!isLoading && data?.cards?.length === 0 && query && (
+        {!isLoading && cards.length === 0 && params.query && (
           <div className="py-12 text-center">
             <p className="text-muted-foreground">No cards found matching your search.</p>
-            <Button variant="link" onClick={() => dispatch({ type: 'reset' })} className="mt-2">
+            <Button variant="link" onClick={() => reset()} className="mt-2">
               Clear filters
             </Button>
           </div>
         )}
 
         {/* Initial State */}
-        {!isLoading && !data && !query && (
+        {!isLoading && cards.length === 0 && !params.query && (
           <div className="py-12 text-center">
             <p className="text-muted-foreground">Enter a search term to find cards.</p>
           </div>

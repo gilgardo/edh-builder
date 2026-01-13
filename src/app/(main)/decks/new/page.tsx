@@ -27,6 +27,7 @@ import { CardImage } from '@/components/cards/card-image';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ScryfallCard } from '@/types/scryfall.types';
+import { useWatch } from 'react-hook-form';
 
 const createDeckSchema = z.object({
   name: z.string().min(1, 'Deck name is required').max(100),
@@ -40,16 +41,13 @@ type CreateDeckForm = z.infer<typeof createDeckSchema>;
 export default function CreateDeckPage() {
   const router = useRouter();
   const [step, setStep] = useState<'commander' | 'details'>('commander');
-  const [commanderQuery, setCommanderQuery] = useState('');
   const [selectedCommander, setSelectedCommander] = useState<ScryfallCard | null>(null);
 
   const createDeck = useCreateDeck();
   const addCardToDeck = useAddCardToDeck();
 
-  const { data: searchResults, isLoading: isSearching } = useCardSearch(
-    { query: commanderQuery, isCommander: true },
-    commanderQuery.length >= 2
-  );
+  const { cards, isLoading: isSearching, setQuery, params } = useCardSearch({ isCommander: true });
+  const { query } = params;
 
   const form = useForm<CreateDeckForm>({
     resolver: zodResolver(createDeckSchema),
@@ -59,6 +57,11 @@ export default function CreateDeckPage() {
       format: 'COMMANDER',
       isPublic: false,
     },
+  });
+
+  const [formatValue, isPublicValue] = useWatch({
+    control: form.control,
+    name: ['format', 'isPublic'],
   });
 
   const handleSelectCommander = (card: ScryfallCard) => {
@@ -98,7 +101,7 @@ export default function CreateDeckPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Create New Deck</h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="text-muted-foreground mt-2">
             {step === 'commander'
               ? 'Start by selecting your commander'
               : 'Fill in the details for your deck'}
@@ -116,7 +119,7 @@ export default function CreateDeckPage() {
           >
             1
           </div>
-          <div className="h-px flex-1 bg-border" />
+          <div className="bg-border h-px flex-1" />
           <div
             className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
               step === 'details'
@@ -133,10 +136,10 @@ export default function CreateDeckPage() {
           <div className="space-y-6">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
-                value={commanderQuery}
-                onChange={(e) => setCommanderQuery(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for a legendary creature..."
                 className="pl-10"
               />
@@ -148,11 +151,7 @@ export default function CreateDeckPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Selected Commander
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedCommander(null)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedCommander(null)}>
                       Change
                     </Button>
                   </CardTitle>
@@ -161,14 +160,11 @@ export default function CreateDeckPage() {
                   <CardImage card={selectedCommander} size="small" />
                   <div>
                     <h3 className="font-semibold">{selectedCommander.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedCommander.type_line}</p>
+                    <p className="text-muted-foreground text-sm">{selectedCommander.type_line}</p>
                     <div className="mt-2">
                       <ColorIdentityBadges colors={selectedCommander.color_identity} />
                     </div>
-                    <Button
-                      className="mt-4 gap-2"
-                      onClick={() => setStep('details')}
-                    >
+                    <Button className="mt-4 gap-2" onClick={() => setStep('details')}>
                       Continue
                       <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -183,22 +179,22 @@ export default function CreateDeckPage() {
                 {isSearching && (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                     {Array.from({ length: 8 }).map((_, i) => (
-                      <Skeleton key={i} className="aspect-[488/680] rounded-lg" />
+                      <Skeleton key={i} className="aspect-488/680 rounded-lg" />
                     ))}
                   </div>
                 )}
 
-                {!isSearching && searchResults?.cards && searchResults.cards.length > 0 && (
+                {!isSearching && cards.length > 0 && (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                    {searchResults.cards.map((card) => (
+                    {cards.map((card) => (
                       <button
                         key={card.id}
                         type="button"
                         onClick={() => handleSelectCommander(card)}
-                        className="group relative overflow-hidden rounded-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="group focus:ring-ring relative overflow-hidden rounded-lg transition-transform hover:scale-105 focus:ring-2 focus:outline-none"
                       >
                         <CardImage card={card} size="normal" />
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                           <p className="truncate text-sm font-medium text-white">{card.name}</p>
                         </div>
                       </button>
@@ -206,15 +202,15 @@ export default function CreateDeckPage() {
                   </div>
                 )}
 
-                {!isSearching && commanderQuery.length >= 2 && searchResults?.cards?.length === 0 && (
+                {!isSearching && query.length >= 2 && cards?.length === 0 && (
                   <div className="py-12 text-center">
                     <p className="text-muted-foreground">
-                      No legendary creatures found matching &quot;{commanderQuery}&quot;
+                      No legendary creatures found matching &quot;{query}&quot;
                     </p>
                   </div>
                 )}
 
-                {!isSearching && commanderQuery.length < 2 && !selectedCommander && (
+                {!isSearching && query.length < 2 && !selectedCommander && (
                   <div className="py-12 text-center">
                     <p className="text-muted-foreground">
                       Enter a name to search for legendary creatures
@@ -248,7 +244,7 @@ export default function CreateDeckPage() {
                 <CardImage card={selectedCommander} size="small" />
                 <div>
                   <h3 className="font-semibold">{selectedCommander.name}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedCommander.type_line}</p>
+                  <p className="text-muted-foreground text-sm">{selectedCommander.type_line}</p>
                   <div className="mt-2">
                     <ColorIdentityBadges colors={selectedCommander.color_identity} />
                   </div>
@@ -267,7 +263,7 @@ export default function CreateDeckPage() {
                   className="mt-1"
                 />
                 {form.formState.errors.name && (
-                  <p className="mt-1 text-sm text-destructive">
+                  <p className="text-destructive mt-1 text-sm">
                     {form.formState.errors.name.message}
                   </p>
                 )}
@@ -288,8 +284,10 @@ export default function CreateDeckPage() {
                 <div>
                   <Label htmlFor="format">Format</Label>
                   <Select
-                    value={form.watch('format')}
-                    onValueChange={(v) => form.setValue('format', v as 'COMMANDER' | 'BRAWL' | 'OATHBREAKER')}
+                    value={formatValue}
+                    onValueChange={(v) =>
+                      form.setValue('format', v as 'COMMANDER' | 'BRAWL' | 'OATHBREAKER')
+                    }
                   >
                     <SelectTrigger className="mt-1">
                       <SelectValue />
@@ -305,7 +303,7 @@ export default function CreateDeckPage() {
                 <div>
                   <Label htmlFor="visibility">Visibility</Label>
                   <Select
-                    value={form.watch('isPublic') ? 'public' : 'private'}
+                    value={isPublicValue ? 'public' : 'private'}
                     onValueChange={(v) => form.setValue('isPublic', v === 'public')}
                   >
                     <SelectTrigger className="mt-1">
@@ -322,18 +320,10 @@ export default function CreateDeckPage() {
 
             {/* Submit */}
             <div className="flex gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setStep('commander')}
-              >
+              <Button type="button" variant="outline" onClick={() => setStep('commander')}>
                 Back
               </Button>
-              <Button
-                type="submit"
-                disabled={createDeck.isPending}
-                className="flex-1 gap-2"
-              >
+              <Button type="submit" disabled={createDeck.isPending} className="flex-1 gap-2">
                 {createDeck.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -349,9 +339,7 @@ export default function CreateDeckPage() {
             </div>
 
             {createDeck.isError && (
-              <p className="text-sm text-destructive">
-                Failed to create deck. Please try again.
-              </p>
+              <p className="text-destructive text-sm">Failed to create deck. Please try again.</p>
             )}
           </form>
         )}

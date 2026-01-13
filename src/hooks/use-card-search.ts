@@ -1,8 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useReducer } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { ScryfallCard } from '@/types/scryfall.types';
+
+/* ============================================================
+   Types
+============================================================ */
 
 export enum CmcOperator {
   eq = 'eq',
@@ -13,15 +17,15 @@ export enum CmcOperator {
 }
 
 interface SearchParams {
-  query?: string;
+  query: string;
   colors: string[];
-  colorIdentity?: string[];
+  colorIdentity: string[];
   type?: string;
   cmc?: number;
   cmcOperator: CmcOperator;
   rarity?: string;
-  isCommander?: boolean;
-  page?: number;
+  isCommander: boolean;
+  page: number;
 }
 
 interface SearchResult {
@@ -31,59 +35,38 @@ interface SearchResult {
   page: number;
 }
 
+type UseCardSearchOptions = Partial<
+  Pick<SearchParams, 'colorIdentity' | 'isCommander' | 'rarity' | 'type' | 'query'>
+>;
+
+/* ============================================================
+   API
+============================================================ */
+
 async function searchCards(params: SearchParams): Promise<SearchResult> {
   const searchParams = new URLSearchParams();
 
   if (params.query) searchParams.set('q', params.query);
-  if (params.colors?.length) searchParams.set('colors', params.colors.join(''));
-  if (params.colorIdentity?.length)
-    searchParams.set('colorIdentity', params.colorIdentity.join(''));
+  if (params.colors.length) searchParams.set('colors', params.colors.join(''));
+  if (params.colorIdentity.length) searchParams.set('colorIdentity', params.colorIdentity.join(''));
   if (params.type) searchParams.set('type', params.type);
   if (params.cmc !== undefined) searchParams.set('cmc', params.cmc.toString());
   if (params.cmcOperator) searchParams.set('cmcOp', params.cmcOperator);
   if (params.rarity) searchParams.set('rarity', params.rarity);
   if (params.isCommander) searchParams.set('isCommander', 'true');
-  if (params.page) searchParams.set('page', params.page.toString());
+  searchParams.set('page', params.page.toString());
 
   const response = await fetch(`/api/cards?${searchParams}`);
-  if (!response.ok) {
-    throw new Error('Failed to search cards');
-  }
+  if (!response.ok) throw new Error('Failed to search cards');
 
   return response.json();
 }
 
-async function autocompleteCards(query: string): Promise<string[]> {
-  if (query.length < 3) return [];
+/* ============================================================
+   State
+============================================================ */
 
-  const response = await fetch(`/api/cards?q=${encodeURIComponent(query)}&autocomplete=true`);
-  if (!response.ok) return [];
-
-  const data = await response.json();
-  return data.suggestions ?? [];
-}
-
-export function useCardSearch(params: SearchParams, enabled = true) {
-  const queryKey = useMemo(() => ['cards', 'search', params], [params]);
-
-  return useQuery({
-    queryKey,
-    queryFn: () => searchCards(params),
-    enabled: enabled && (!!params.query || !!params.type || !!params.colors?.length),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: (previousData) => previousData,
-  });
-}
-
-export function useCardAutocomplete(query: string) {
-  return useQuery({
-    queryKey: ['cards', 'autocomplete', query],
-    queryFn: () => autocompleteCards(query),
-    enabled: query.length >= 2,
-    staleTime: 60 * 1000, // 1 minute
-  });
-}
-export const baseSearchParams: SearchParams = {
+const baseSearchParams: SearchParams = {
   query: '',
   colors: [],
   colorIdentity: [],
@@ -97,37 +80,39 @@ export const baseSearchParams: SearchParams = {
 
 type SearchAction =
   | { type: 'setQuery'; query: string }
-  | { type: 'setBaseParams'; baseParams: { colorIdentity: string[]; isCommander: boolean } }
-  | { type: 'setColors'; colors: string[] }
+  | { type: 'setBaseParams'; base: { colorIdentity: string[]; isCommander: boolean } }
   | { type: 'toggleColor'; color: string }
   | { type: 'setType'; cardType: string }
-  | { type: 'setCmc'; cmcSearch: { cmc?: number; cmcOperator: CmcOperator } }
+  | { type: 'setCmc'; cmc?: number; cmcOperator: CmcOperator }
+  | { type: 'setRarity'; rarity: string }
   | { type: 'setPage'; page: number }
   | { type: 'reset' };
 
-const searchReducer = (state: SearchParams, action: SearchAction): SearchParams => {
+function reducer(state: SearchParams, action: SearchAction): SearchParams {
   switch (action.type) {
     case 'setQuery':
       return { ...state, query: action.query, page: 1 };
 
     case 'setBaseParams':
-      return { ...state, ...action.baseParams };
+      return { ...state, ...action.base };
 
-    case 'setColors':
-      return { ...state, colors: action.colors, page: 1 };
+    case 'toggleColor': {
+      const exists = state.colors.includes(action.color);
+      const colors = exists
+        ? state.colors.filter((c) => c !== action.color)
+        : [...state.colors, action.color];
 
-    case 'toggleColor':
-      const colors = state.colors;
-      const newColors = colors.includes(action.color)
-        ? colors.filter((c) => c !== action.color)
-        : [...colors, action.color];
-      return { ...state, colors: newColors };
+      return { ...state, colors, page: 1 };
+    }
 
     case 'setType':
       return { ...state, type: action.cardType, page: 1 };
 
     case 'setCmc':
-      return { ...state, ...action.cmcSearch, page: 1 };
+      return { ...state, cmc: action.cmc, cmcOperator: action.cmcOperator, page: 1 };
+
+    case 'setRarity':
+      return { ...state, rarity: action.rarity, page: 1 };
 
     case 'setPage':
       return { ...state, page: action.page };
@@ -138,13 +123,63 @@ const searchReducer = (state: SearchParams, action: SearchAction): SearchParams 
     default:
       return state;
   }
-};
+}
 
-export function useCardSearchState() {
-  const [searchParams, dispatch] = useReducer(searchReducer, baseSearchParams);
+/* ============================================================
+   Hook
+============================================================ */
+
+export function useCardSearch(options: UseCardSearchOptions = {}, enabled = true) {
+  const [params, dispatch] = useReducer(reducer, { ...baseSearchParams, ...options });
+
+  const mergedParams = useMemo(
+    () => ({
+      ...params,
+      ...options,
+    }),
+    [params, options]
+  );
+
+  const query = useQuery({
+    queryKey: ['cards', 'search', params],
+    queryFn: () => searchCards(mergedParams),
+    enabled: enabled && params.query.length > 3,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
   return {
-    params: searchParams,
-    dispatch,
+    /* React Query */
+    ...query,
+
+    /* Data shortcuts */
+    cards: query.data?.cards ?? [],
+    total: query.data?.total ?? 0,
+    hasMore: query.data?.hasMore ?? false,
+    page: params.page,
+
+    /* State */
+    params,
+
+    /* Actions */
+    setQuery: (query: string) => dispatch({ type: 'setQuery', query }),
+
+    setBaseParams: (colorIdentity: string[], isCommander: boolean) =>
+      dispatch({ type: 'setBaseParams', base: { colorIdentity, isCommander } }),
+
+    toggleColor: (color: string) => dispatch({ type: 'toggleColor', color }),
+
+    setType: (type: string) => dispatch({ type: 'setType', cardType: type }),
+
+    setCmc: (cmc?: number, op: CmcOperator = CmcOperator.eq) =>
+      dispatch({ type: 'setCmc', cmc, cmcOperator: op }),
+
+    setRarity: (rarity: string) => dispatch({ type: 'setRarity', rarity }),
+
+    nextPage: () => dispatch({ type: 'setPage', page: params.page + 1 }),
+
+    prevPage: () => dispatch({ type: 'setPage', page: Math.max(1, params.page - 1) }),
+
+    reset: () => dispatch({ type: 'reset' }),
   };
 }

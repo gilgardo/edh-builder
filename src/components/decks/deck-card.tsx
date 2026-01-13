@@ -21,12 +21,12 @@ export function DeckCard({ deck, className }: DeckCardProps) {
     <Link href={`/decks/${deck.id}`}>
       <Card
         className={cn(
-          'group overflow-hidden transition-all hover:shadow-lg hover:border-primary/50',
+          'group hover:border-primary/50 overflow-hidden transition-all hover:shadow-lg',
           className
         )}
       >
         {/* Commander Image */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className="bg-muted relative aspect-4/3 overflow-hidden">
           {commanderImage ? (
             <Image
               src={commanderImage}
@@ -36,17 +36,17 @@ export function DeckCard({ deck, className }: DeckCardProps) {
             />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <Layers className="h-12 w-12 text-muted-foreground" />
+              <Layers className="text-muted-foreground h-12 w-12" />
             </div>
           )}
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
           {/* Color identity badges */}
           <div className="absolute bottom-2 left-2">
             <ColorIdentityBadges colors={deck.colorIdentity} size="md" />
           </div>
           {/* Format badge */}
-          <div className="absolute right-2 top-2">
+          <div className="absolute top-2 right-2">
             <span className="rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white">
               {deck.format}
             </span>
@@ -54,21 +54,21 @@ export function DeckCard({ deck, className }: DeckCardProps) {
         </div>
 
         <CardHeader className="pb-2">
-          <h3 className="line-clamp-1 font-semibold text-foreground group-hover:text-primary">
+          <h3 className="text-foreground group-hover:text-primary line-clamp-1 font-semibold">
             {deck.name}
           </h3>
           {deck.commander && (
-            <p className="line-clamp-1 text-sm text-muted-foreground">{deck.commander.name}</p>
+            <p className="text-muted-foreground line-clamp-1 text-sm">{deck.commander.name}</p>
           )}
         </CardHeader>
 
         {deck.description && (
           <CardContent className="pb-2">
-            <p className="line-clamp-2 text-sm text-muted-foreground">{deck.description}</p>
+            <p className="text-muted-foreground line-clamp-2 text-sm">{deck.description}</p>
           </CardContent>
         )}
 
-        <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
+        <CardFooter className="text-muted-foreground flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
               <AvatarImage src={deck.user.image ?? undefined} alt={deck.user.name ?? 'User'} />
@@ -97,19 +97,19 @@ export function DeckCard({ deck, className }: DeckCardProps) {
 export function DeckCardSkeleton() {
   return (
     <Card className="overflow-hidden">
-      <div className="aspect-[4/3] animate-pulse bg-muted" />
+      <div className="bg-muted aspect-4/3 animate-pulse" />
       <CardHeader className="pb-2">
-        <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
-        <div className="mt-1 h-4 w-1/2 animate-pulse rounded bg-muted" />
+        <div className="bg-muted h-5 w-3/4 animate-pulse rounded" />
+        <div className="bg-muted mt-1 h-4 w-1/2 animate-pulse rounded" />
       </CardHeader>
       <CardFooter className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 animate-pulse rounded-full bg-muted" />
-          <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+          <div className="bg-muted h-6 w-6 animate-pulse rounded-full" />
+          <div className="bg-muted h-4 w-20 animate-pulse rounded" />
         </div>
         <div className="flex items-center gap-3">
-          <div className="h-4 w-8 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-8 animate-pulse rounded bg-muted" />
+          <div className="bg-muted h-4 w-8 animate-pulse rounded" />
+          <div className="bg-muted h-4 w-8 animate-pulse rounded" />
         </div>
       </CardFooter>
     </Card>

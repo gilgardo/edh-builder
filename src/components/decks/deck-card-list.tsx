@@ -51,18 +51,18 @@ export function DeckCardList({
   const commanderImageUris = commander?.imageUris as { normal?: string } | null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {showHeader && (
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-3">
-            <Layers className="h-5 w-5 text-muted-foreground" />
+            <Layers className="text-muted-foreground h-5 w-5" />
             <span className="font-medium">Deck List</span>
             <Badge variant="secondary">{totalCards}/100</Badge>
           </div>
           <ColorIdentityBadges colors={colorIdentity} size="sm" />
         </div>
       )}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+      <div className="flex-1 space-y-4 overflow-auto p-4">
         {/* Commander */}
         {commander && (
           <Card>
@@ -71,7 +71,7 @@ export function DeckCardList({
             </CardHeader>
             <CardContent className="flex gap-3">
               {commanderImageUris?.normal && (
-                <div className="relative aspect-[488/680] w-20 overflow-hidden rounded">
+                <div className="relative aspect-488/680 w-20 overflow-hidden rounded">
                   <Image
                     src={commanderImageUris.normal}
                     alt={commander.name}
@@ -82,7 +82,7 @@ export function DeckCardList({
               )}
               <div className="flex-1">
                 <p className="font-medium">{commander.name}</p>
-                <p className="text-xs text-muted-foreground">{commander.typeLine}</p>
+                <p className="text-muted-foreground text-xs">{commander.typeLine}</p>
                 {commander.manaCost && (
                   <div className="mt-1">
                     <ManaCost cost={commander.manaCost} size="sm" />
@@ -96,8 +96,8 @@ export function DeckCardList({
         {/* Card Groups */}
         {Object.entries(cardGroups).map(([type, cards]) => (
           <div key={type}>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-muted-foreground">{type}</h3>
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-muted-foreground text-sm font-medium">{type}</h3>
               <Badge variant="outline" className="text-xs">
                 {cards.reduce((acc, c) => acc + c.quantity, 0)}
               </Badge>
@@ -106,20 +106,18 @@ export function DeckCardList({
               {cards.map((deckCard) => (
                 <div
                   key={deckCard.card.id}
-                  className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 group"
+                  className="hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-sm text-muted-foreground w-5">{deckCard.quantity}x</span>
-                    <span className="text-sm truncate">{deckCard.card.name}</span>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="text-muted-foreground w-5 text-sm">{deckCard.quantity}x</span>
+                    <span className="truncate text-sm">{deckCard.card.name}</span>
                   </div>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {deckCard.card.manaCost && (
-                      <ManaCost cost={deckCard.card.manaCost} size="sm" />
-                    )}
+                  <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    {deckCard.card.manaCost && <ManaCost cost={deckCard.card.manaCost} size="sm" />}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive h-6 w-6"
                       onClick={() => onRemoveCard(deckCard.card.id)}
                       disabled={isRemoving}
                     >
@@ -134,9 +132,9 @@ export function DeckCardList({
 
         {Object.keys(cardGroups).length === 0 && (
           <div className="py-12 text-center">
-            <Layers className="mx-auto h-12 w-12 text-muted-foreground" />
+            <Layers className="text-muted-foreground mx-auto h-12 w-12" />
             <h3 className="mt-4 font-semibold">No cards yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm">
               Search for cards to add them to your deck
             </p>
           </div>

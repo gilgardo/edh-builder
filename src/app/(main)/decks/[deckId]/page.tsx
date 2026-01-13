@@ -43,7 +43,19 @@ interface PageProps {
 }
 
 // Group cards by category and type
-function groupCardsByType(cards: Array<{ category: string; quantity: number; card: { typeLine: string; name: string; manaCost: string | null; cmc: number; imageUris: unknown } }>) {
+function groupCardsByType(
+  cards: Array<{
+    category: string;
+    quantity: number;
+    card: {
+      typeLine: string;
+      name: string;
+      manaCost: string | null;
+      cmc: number;
+      imageUris: unknown;
+    };
+  }>
+) {
   const groups: Record<string, typeof cards> = {};
 
   for (const deckCard of cards) {
@@ -63,7 +75,16 @@ function groupCardsByType(cards: Array<{ category: string; quantity: number; car
   }
 
   // Sort by type priority
-  const typeOrder = ['Creatures', 'Instants', 'Sorceries', 'Artifacts', 'Enchantments', 'Planeswalkers', 'Lands', 'Other'];
+  const typeOrder = [
+    'Creatures',
+    'Instants',
+    'Sorceries',
+    'Artifacts',
+    'Enchantments',
+    'Planeswalkers',
+    'Lands',
+    'Other',
+  ];
   const sortedGroups: typeof groups = {};
   for (const type of typeOrder) {
     const group = groups[type];
@@ -76,7 +97,9 @@ function groupCardsByType(cards: Array<{ category: string; quantity: number; car
 }
 
 // Calculate mana curve data
-function calculateManaCurve(cards: Array<{ quantity: number; card: { cmc: number; typeLine: string } }>) {
+function calculateManaCurve(
+  cards: Array<{ quantity: number; card: { cmc: number; typeLine: string } }>
+) {
   const curve: Record<string, number> = {};
 
   for (const deckCard of cards) {
@@ -125,9 +148,9 @@ export default function DeckViewPage({ params }: PageProps) {
     return (
       <div className="py-8">
         <Container className="max-w-4xl">
-          <div className="text-center py-12">
+          <div className="py-12 text-center">
             <h1 className="text-2xl font-bold">Deck not found</h1>
-            <p className="mt-2 text-muted-foreground">
+            <p className="text-muted-foreground mt-2">
               This deck may have been deleted or you don&apos;t have permission to view it.
             </p>
             <Link href="/decks">
@@ -150,7 +173,10 @@ export default function DeckViewPage({ params }: PageProps) {
   const updatedAt = typeof deck.updatedAt === 'string' ? new Date(deck.updatedAt) : deck.updatedAt;
 
   // Get commander image
-  const commanderImageUris = deck.commander?.imageUris as { normal?: string; art_crop?: string } | null;
+  const commanderImageUris = deck.commander?.imageUris as {
+    normal?: string;
+    art_crop?: string;
+  } | null;
   const commanderImage = commanderImageUris?.art_crop || commanderImageUris?.normal;
 
   return (
@@ -160,7 +186,7 @@ export default function DeckViewPage({ params }: PageProps) {
         <div className="mb-6">
           <Link
             href="/decks"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Decks
@@ -168,21 +194,16 @@ export default function DeckViewPage({ params }: PageProps) {
         </div>
 
         {/* Hero Section */}
-        <div className="relative mb-8 overflow-hidden rounded-xl bg-gradient-to-br from-primary/20 via-background to-background">
+        <div className="from-primary/20 via-background to-background relative mb-8 overflow-hidden rounded-xl bg-linear-to-br">
           {commanderImage && (
             <div className="absolute inset-0 opacity-20">
-              <Image
-                src={commanderImage}
-                alt=""
-                fill
-                className="object-cover"
-              />
+              <Image src={commanderImage} alt="" fill className="object-cover" />
             </div>
           )}
           <div className="relative p-6 md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="mb-2 flex items-center gap-3">
                   <Badge variant="secondary">{deck.format}</Badge>
                   {deck.isPublic ? (
                     <Badge variant="outline" className="gap-1">
@@ -196,18 +217,14 @@ export default function DeckViewPage({ params }: PageProps) {
                     </Badge>
                   )}
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                  {deck.name}
-                </h1>
+                <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{deck.name}</h1>
                 {deck.commander && (
-                  <p className="mt-2 text-lg text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 text-lg">
                     Commanded by {deck.commander.name}
                   </p>
                 )}
                 {deck.description && (
-                  <p className="mt-4 text-muted-foreground max-w-2xl">
-                    {deck.description}
-                  </p>
+                  <p className="text-muted-foreground mt-4 max-w-2xl">{deck.description}</p>
                 )}
                 <div className="mt-4 flex items-center gap-4">
                   <ColorIdentityBadges colors={deck.colorIdentity} size="lg" />
@@ -223,7 +240,7 @@ export default function DeckViewPage({ params }: PageProps) {
                   </Avatar>
                   <div>
                     <p className="font-medium">{deck.user.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}
                     </p>
                   </div>
@@ -248,7 +265,8 @@ export default function DeckViewPage({ params }: PageProps) {
                           <DialogHeader>
                             <DialogTitle>Delete Deck</DialogTitle>
                             <DialogDescription>
-                              Are you sure you want to delete &quot;{deck.name}&quot;? This action cannot be undone.
+                              Are you sure you want to delete &quot;{deck.name}&quot;? This action
+                              cannot be undone.
                             </DialogDescription>
                           </DialogHeader>
                           <DialogFooter>
@@ -282,45 +300,45 @@ export default function DeckViewPage({ params }: PageProps) {
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Layers className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
+                <Layers className="text-primary h-5 w-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{totalCards}</p>
-                <p className="text-sm text-muted-foreground">Total Cards</p>
+                <p className="text-muted-foreground text-sm">Total Cards</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <span className="text-lg font-bold text-primary">⊘</span>
+              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
+                <span className="text-primary text-lg font-bold">⊘</span>
               </div>
               <div>
                 <p className="text-2xl font-bold">{deck.avgCmc?.toFixed(2) ?? '—'}</p>
-                <p className="text-sm text-muted-foreground">Avg. CMC</p>
+                <p className="text-muted-foreground text-sm">Avg. CMC</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Heart className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
+                <Heart className="text-primary h-5 w-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{deck.favorites.length}</p>
-                <p className="text-sm text-muted-foreground">Likes</p>
+                <p className="text-muted-foreground text-sm">Likes</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
+                <Calendar className="text-primary h-5 w-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{formatDistanceToNow(updatedAt)}</p>
-                <p className="text-sm text-muted-foreground">Last Updated</p>
+                <p className="text-muted-foreground text-sm">Last Updated</p>
               </div>
             </CardContent>
           </Card>
@@ -328,7 +346,7 @@ export default function DeckViewPage({ params }: PageProps) {
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Content - Card List */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Commander Section */}
             {deck.commander && (
               <Card>
@@ -337,7 +355,7 @@ export default function DeckViewPage({ params }: PageProps) {
                 </CardHeader>
                 <CardContent className="flex gap-4">
                   {commanderImageUris?.normal && (
-                    <div className="relative aspect-[488/680] w-32 overflow-hidden rounded-lg">
+                    <div className="relative aspect-488/680 w-32 overflow-hidden rounded-lg">
                       <Image
                         src={commanderImageUris.normal}
                         alt={deck.commander.name}
@@ -348,14 +366,16 @@ export default function DeckViewPage({ params }: PageProps) {
                   )}
                   <div>
                     <h3 className="font-semibold">{deck.commander.name}</h3>
-                    <p className="text-sm text-muted-foreground">{deck.commander.typeLine}</p>
+                    <p className="text-muted-foreground text-sm">{deck.commander.typeLine}</p>
                     {deck.commander.manaCost && (
                       <div className="mt-2">
                         <ManaCost cost={deck.commander.manaCost} />
                       </div>
                     )}
                     {deck.commander.oracleText && (
-                      <p className="mt-2 text-sm whitespace-pre-line">{deck.commander.oracleText}</p>
+                      <p className="mt-2 text-sm whitespace-pre-line">
+                        {deck.commander.oracleText}
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -378,7 +398,7 @@ export default function DeckViewPage({ params }: PageProps) {
                     {cards.map((deckCard) => (
                       <li
                         key={deckCard.card.name}
-                        className="flex items-center justify-between py-1 text-sm hover:bg-muted/50 px-2 rounded"
+                        className="hover:bg-muted/50 flex items-center justify-between rounded px-2 py-1 text-sm"
                       >
                         <span className="flex items-center gap-2">
                           <span className="text-muted-foreground w-4">{deckCard.quantity}x</span>
@@ -397,9 +417,9 @@ export default function DeckViewPage({ params }: PageProps) {
             {deck.cards.length === 0 && (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <Layers className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <Layers className="text-muted-foreground mx-auto h-12 w-12" />
                   <h3 className="mt-4 font-semibold">No cards yet</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 text-sm">
                     This deck doesn&apos;t have any cards.
                   </p>
                   {isOwner && (
@@ -420,20 +440,23 @@ export default function DeckViewPage({ params }: PageProps) {
                 <CardTitle>Mana Curve</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end justify-between h-32 gap-1">
+                <div className="flex h-32 items-end justify-between gap-1">
                   {['0', '1', '2', '3', '4', '5', '6', '7+'].map((cmc) => {
                     const count = manaCurve[cmc] || 0;
                     const maxCount = Math.max(...Object.values(manaCurve), 1);
                     const height = (count / maxCount) * 100;
                     return (
-                      <div key={cmc} className="flex-1 flex flex-col items-center gap-1">
-                        <div className="w-full bg-muted rounded-t relative" style={{ height: '100px' }}>
+                      <div key={cmc} className="flex flex-1 flex-col items-center gap-1">
+                        <div
+                          className="bg-muted relative w-full rounded-t"
+                          style={{ height: '100px' }}
+                        >
                           <div
-                            className="absolute bottom-0 w-full bg-primary rounded-t transition-all"
+                            className="bg-primary absolute bottom-0 w-full rounded-t transition-all"
                             style={{ height: `${height}%` }}
                           />
                         </div>
-                        <span className="text-xs text-muted-foreground">{cmc}</span>
+                        <span className="text-muted-foreground text-xs">{cmc}</span>
                         <span className="text-xs font-medium">{count}</span>
                       </div>
                     );
@@ -452,7 +475,7 @@ export default function DeckViewPage({ params }: PageProps) {
                   <ColorIdentityBadges colors={deck.colorIdentity} size="lg" />
                 </div>
                 {deck.colorIdentity.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground mt-2">Colorless</p>
+                  <p className="text-muted-foreground mt-2 text-center text-sm">Colorless</p>
                 )}
               </CardContent>
             </Card>
@@ -495,7 +518,7 @@ function DeckViewSkeleton() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <Skeleton className="h-48" />
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
