@@ -109,6 +109,18 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
+    // Ensure user exists in database (handles edge case where session exists but user doesn't)
+    await prisma.user.upsert({
+      where: { id: session.user.id },
+      update: {},
+      create: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        image: session.user.image,
+      },
+    });
+
     const deck = await prisma.deck.create({
       data: {
         name: data.name,
