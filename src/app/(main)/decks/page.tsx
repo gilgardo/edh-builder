@@ -19,7 +19,7 @@ export default function DecksPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Browse Decks</h1>
-            <p className="mt-2 text-muted-foreground">
+            <p className="text-muted-foreground mt-2">
               Discover Commander decks from the community
             </p>
           </div>
@@ -31,7 +31,6 @@ export default function DecksPage() {
           </Button>
         </div>
 
-        {/* Deck Gallery */}
         <DeckGallery />
       </Container>
     </div>

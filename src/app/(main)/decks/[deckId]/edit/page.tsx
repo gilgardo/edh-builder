@@ -121,14 +121,7 @@ export default function DeckEditPage({ params }: PageProps) {
   const addCard = useAddCardToDeck();
   const removeCard = useRemoveCardFromDeck();
 
-  // Single centralized search hook
-  const search = useCardSearch(
-    {
-      colorIdentity: deck?.colorIdentity ?? [],
-      isCommander: true,
-    },
-    !!deck
-  );
+  const search = useCardSearch({ colorIdentity: deck?.colorIdentity ?? [] }, !!deck);
   const {
     cards,
     isLoading: isSearching,
@@ -139,9 +132,6 @@ export default function DeckEditPage({ params }: PageProps) {
   } = search;
 
   const { query, type, colorIdentity } = searchParams;
-
-  console.log(colorIdentity, deck);
-  // Reset search and set base params when deck changes
 
   const handleAddCard = useCallback(
     async (card: ScryfallCard) => {

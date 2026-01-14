@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useReducer } from 'react';
+import { useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { ScryfallCard } from '@/types/scryfall.types';
 
@@ -80,7 +80,6 @@ const baseSearchParams: SearchParams = {
 
 type SearchAction =
   | { type: 'setQuery'; query: string }
-  | { type: 'setBaseParams'; base: { colorIdentity: string[]; isCommander: boolean } }
   | { type: 'toggleColor'; color: string }
   | { type: 'setType'; cardType: string }
   | { type: 'setCmc'; cmc?: number; cmcOperator: CmcOperator }
@@ -92,9 +91,6 @@ function reducer(state: SearchParams, action: SearchAction): SearchParams {
   switch (action.type) {
     case 'setQuery':
       return { ...state, query: action.query, page: 1 };
-
-    case 'setBaseParams':
-      return { ...state, ...action.base };
 
     case 'toggleColor': {
       const exists = state.colors.includes(action.color);
@@ -130,20 +126,16 @@ function reducer(state: SearchParams, action: SearchAction): SearchParams {
 ============================================================ */
 
 export function useCardSearch(options: UseCardSearchOptions = {}, enabled = true) {
-  const [params, dispatch] = useReducer(reducer, { ...baseSearchParams, ...options });
+  const [params, dispatch] = useReducer(reducer, baseSearchParams);
 
-  const mergedParams = useMemo(
-    () => ({
-      ...params,
-      ...options,
-    }),
-    [params, options]
-  );
+  // Merge user-controlled state with external options
+  // External options (colorIdentity, isCommander) take precedence
+  const mergedParams = { ...params, ...options };
 
   const query = useQuery({
-    queryKey: ['cards', 'search', params],
+    queryKey: ['cards', 'search', mergedParams],
     queryFn: () => searchCards(mergedParams),
-    enabled: enabled && params.query.length >= 3,
+    enabled: enabled && mergedParams.query.length >= 3,
     staleTime: 5 * 60 * 1000,
     placeholderData: (prev) => prev,
   });
@@ -156,16 +148,13 @@ export function useCardSearch(options: UseCardSearchOptions = {}, enabled = true
     cards: query.data?.cards ?? [],
     total: query.data?.total ?? 0,
     hasMore: query.data?.hasMore ?? false,
-    page: params.page,
+    page: mergedParams.page,
 
     /* State */
-    params,
+    params: mergedParams,
 
     /* Actions */
     setQuery: (query: string) => dispatch({ type: 'setQuery', query }),
-
-    setBaseParams: (colorIdentity: string[], isCommander: boolean) =>
-      dispatch({ type: 'setBaseParams', base: { colorIdentity, isCommander } }),
 
     toggleColor: (color: string) => dispatch({ type: 'toggleColor', color }),
 

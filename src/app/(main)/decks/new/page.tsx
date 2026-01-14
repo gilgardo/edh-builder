@@ -45,7 +45,6 @@ export default function CreateDeckPage() {
 
   const createDeck = useCreateDeck();
   const addCardToDeck = useAddCardToDeck();
-
   const { cards, isLoading: isSearching, setQuery, params } = useCardSearch({ isCommander: true });
   const { query } = params;
 
