@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Layers } from 'lucide-react';
+import { Heart, Layers, Lock } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
@@ -45,8 +45,14 @@ export function DeckCard({ deck, className }: DeckCardProps) {
           <div className="absolute bottom-2 left-2">
             <ColorIdentityBadges colors={deck.colorIdentity} size="md" />
           </div>
-          {/* Format badge */}
-          <div className="absolute top-2 right-2">
+          {/* Badges */}
+          <div className="absolute top-2 right-2 flex items-center gap-1.5">
+            {!deck.isPublic && (
+              <span className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white">
+                <Lock className="h-3 w-3" />
+                Private
+              </span>
+            )}
             <span className="rounded-full bg-black/50 px-2 py-1 text-xs font-medium text-white">
               {deck.format}
             </span>

@@ -122,7 +122,6 @@ export function CardSearchSheet({
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any type</SelectItem>
                     <SelectItem value="creature">Creature</SelectItem>
                     <SelectItem value="instant">Instant</SelectItem>
                     <SelectItem value="sorcery">Sorcery</SelectItem>

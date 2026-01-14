@@ -1,7 +1,7 @@
 'use client';
-
 import { useState } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useDecks } from '@/hooks/use-decks';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,23 +30,30 @@ const FORMATS = [
 ];
 
 interface DeckGalleryProps {
+  /** Show current user's decks (public + private) */
+  mine?: boolean;
+  /** Show decks for a specific user */
   userId?: string;
   showFilters?: boolean;
   className?: string;
 }
 
-export function DeckGallery({ userId, showFilters = true, className }: DeckGalleryProps) {
+export function DeckGallery({ mine, userId, showFilters = true, className }: DeckGalleryProps) {
+  const { data: session } = useSession();
   const [search, setSearch] = useState('');
   const [colorIdentity, setColorIdentity] = useState<string[]>([]);
   const [format, setFormat] = useState<string>('');
   const [page, setPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // When mine=true, use the current user's ID
+  const effectiveUserId = mine ? session?.user?.id : userId;
+
   const { data, isLoading, isFetching } = useDecks({
     search: search || undefined,
     colorIdentity: colorIdentity.length ? colorIdentity : undefined,
     format: format as 'COMMANDER' | 'BRAWL' | 'OATHBREAKER' | undefined,
-    userId,
+    userId: effectiveUserId,
     page,
     limit: 12,
   });
@@ -198,7 +205,9 @@ export function DeckGallery({ userId, showFilters = true, className }: DeckGalle
           <p className="text-muted-foreground">
             {hasActiveFilters
               ? 'No decks found matching your filters.'
-              : 'No decks found. Be the first to create one!'}
+              : mine
+                ? "You haven't created any decks yet."
+                : 'No decks found. Be the first to create one!'}
           </p>
           {hasActiveFilters && (
             <Button variant="link" onClick={resetFilters} className="mt-2">

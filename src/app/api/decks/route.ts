@@ -5,6 +5,7 @@ import { CreateDeckSchema, DeckFiltersSchema } from '@/schemas/deck.schema';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
 
@@ -42,14 +43,16 @@ export async function GET(request: NextRequest) {
       where.format = filters.format;
     }
 
-    if (filters.isPublic !== undefined) {
-      where.isPublic = filters.isPublic;
-    }
-
     if (filters.userId) {
       where.userId = filters.userId;
+      // If viewing own decks, show all (public + private)
+      // If viewing someone else's decks, only show public
+      if (filters.userId !== session?.user?.id) {
+        where.isPublic = true;
+      }
+      // Otherwise show all decks for the owner (no isPublic filter)
     } else {
-      // Only show public decks if no user filter
+      // No user filter = browse public decks only
       where.isPublic = true;
     }
 

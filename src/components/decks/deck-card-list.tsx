@@ -1,33 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { Layers, Trash2 } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
+import { Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
-
-interface DeckCard {
-  category: string;
-  quantity: number;
-  card: {
-    id: string;
-    typeLine: string;
-    name: string;
-    manaCost: string | null;
-    cmc: number;
-    imageUris: unknown;
-  };
-}
-
-interface Commander {
-  name: string;
-  typeLine: string;
-  manaCost: string | null;
-  imageUris: unknown;
-}
+import { Commander, DeckCard } from '@/types/cards';
+import { CardRow } from '../cards/card-row';
 
 interface DeckCardListProps {
   commander: Commander | null;
@@ -104,27 +84,14 @@ export function DeckCardList({
             </div>
             <div className="space-y-1">
               {cards.map((deckCard) => (
-                <div
+                <CardRow
                   key={deckCard.card.id}
-                  className="hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="text-muted-foreground w-5 text-sm">{deckCard.quantity}x</span>
-                    <span className="truncate text-sm">{deckCard.card.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    {deckCard.card.manaCost && <ManaCost cost={deckCard.card.manaCost} size="sm" />}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive h-6 w-6"
-                      onClick={() => onRemoveCard(deckCard.card.id)}
-                      disabled={isRemoving}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
+                  card={deckCard.card}
+                  quantity={deckCard.quantity}
+                  variant="deck"
+                  onAction={onRemoveCard}
+                  isPending={isRemoving}
+                />
               ))}
             </div>
           </div>

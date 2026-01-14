@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useCallback } from 'react';
+import { use, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Search, X, Plus, Eye, Settings, Layers, Filter } from 'lucide-react';
@@ -38,6 +38,7 @@ import { CardSearchSheet } from '@/components/cards/card-search-sheet';
 import { CardSearchGrid } from '@/components/cards/card-search-grid';
 import { DeckCardList } from '@/components/decks/deck-card-list';
 import type { ScryfallCard } from '@/types/scryfall.types';
+import type { DeckCard } from '@/types/cards';
 import { cn } from '@/lib/utils';
 
 interface PageProps {
@@ -53,21 +54,9 @@ const MTG_COLORS = [
 ];
 
 // Group cards by type
-function groupCardsByType(
-  cards: Array<{
-    category: string;
-    quantity: number;
-    card: {
-      id: string;
-      typeLine: string;
-      name: string;
-      manaCost: string | null;
-      cmc: number;
-      imageUris: unknown;
-    };
-  }>
-) {
-  const groups: Record<string, typeof cards> = {};
+function groupCardsByType(cards: DeckCard[] | undefined): Record<string, DeckCard[]> {
+  const groups: Record<string, DeckCard[]> = {};
+  if (!cards) return {};
 
   for (const deckCard of cards) {
     const typeLine = deckCard.card.typeLine.toLowerCase();
@@ -81,8 +70,7 @@ function groupCardsByType(
     else if (typeLine.includes('planeswalker')) type = 'Planeswalkers';
     else if (typeLine.includes('land')) type = 'Lands';
 
-    if (!groups[type]) groups[type] = [];
-    groups[type]!.push(deckCard);
+    (groups[type] ??= []).push(deckCard);
   }
 
   const typeOrder = [
@@ -95,11 +83,11 @@ function groupCardsByType(
     'Lands',
     'Other',
   ];
-  const sortedGroups: typeof groups = {};
+  const sortedGroups: Record<string, DeckCard[]> = {};
   for (const type of typeOrder) {
     const group = groups[type];
     if (group && group.length > 0) {
-      sortedGroups[type] = group.sort((a, b) => a.card.name.localeCompare(b.card.name));
+      sortedGroups[type] = group.sort((a, b) => a.card.cmc - b.card.cmc);
     }
   }
 
@@ -117,6 +105,15 @@ export default function DeckEditPage({ params }: PageProps) {
 
   const { data: deckResponse, isLoading, error } = useDeck(deckId);
   const deck = deckResponse?.deck;
+
+  const cardGroups = useMemo(
+    () => groupCardsByType(deck?.cards.filter((card) => card.cardId != deck.commanderId)),
+    [deck]
+  );
+  const totalCards = deck?.cards.reduce(
+    (acc: number, c: { quantity: number }) => acc + c.quantity,
+    0
+  );
   const updateDeck = useUpdateDeck();
   const addCard = useAddCardToDeck();
   const removeCard = useRemoveCardFromDeck();
@@ -213,12 +210,6 @@ export default function DeckEditPage({ params }: PageProps) {
     );
   }
 
-  const cardGroups = groupCardsByType(deck.cards);
-  const totalCards = deck.cards.reduce(
-    (acc: number, c: { quantity: number }) => acc + c.quantity,
-    0
-  );
-
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       {/* Fixed Header */}
@@ -278,6 +269,9 @@ export default function DeckEditPage({ params }: PageProps) {
           value={searchParams.query || ''}
           onChange={setQuery}
           onOpenFullSearch={() => setSearchSheetOpen(true)}
+          cards={cards}
+          onAddCard={handleAddCard}
+          isLoading={isSearching}
         />
       </div>
 
@@ -460,7 +454,7 @@ export default function DeckEditPage({ params }: PageProps) {
           <DeckCardList
             commander={deck.commander}
             cardGroups={cardGroups}
-            totalCards={totalCards}
+            totalCards={totalCards ?? 0}
             colorIdentity={deck.colorIdentity}
             onRemoveCard={handleRemoveCard}
             isRemoving={removeCard.isPending}
@@ -482,7 +476,7 @@ export default function DeckEditPage({ params }: PageProps) {
           <DeckCardList
             commander={deck.commander}
             cardGroups={cardGroups}
-            totalCards={totalCards}
+            totalCards={totalCards ?? 0}
             colorIdentity={deck.colorIdentity}
             onRemoveCard={handleRemoveCard}
             isRemoving={removeCard.isPending}
