@@ -55,7 +55,7 @@ export function CardSearchGrid({
     );
   }
 
-  if (searchQuery.length >= 2 && cards.length === 0) {
+  if (searchQuery.length >= 3 && cards.length === 0) {
     return (
       <div className="py-12 text-center">
         <p className="text-muted-foreground">No cards found matching &quot;{searchQuery}&quot;</p>
@@ -66,7 +66,11 @@ export function CardSearchGrid({
   return (
     <div className="py-12 text-center">
       <Search className="text-muted-foreground mx-auto h-12 w-12" />
-      <p className="text-muted-foreground mt-4">Search for cards to add to your deck</p>
+      <p className="text-muted-foreground mt-4">
+        {searchQuery.length > 0
+          ? 'Type at least 3 characters to search'
+          : 'Search for cards to add to your deck'}
+      </p>
     </div>
   );
 }

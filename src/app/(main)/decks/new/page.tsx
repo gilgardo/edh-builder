@@ -202,7 +202,7 @@ export default function CreateDeckPage() {
                   </div>
                 )}
 
-                {!isSearching && query.length >= 2 && cards?.length === 0 && (
+                {!isSearching && query.length >= 3 && cards?.length === 0 && (
                   <div className="py-12 text-center">
                     <p className="text-muted-foreground">
                       No legendary creatures found matching &quot;{query}&quot;
@@ -210,10 +210,12 @@ export default function CreateDeckPage() {
                   </div>
                 )}
 
-                {!isSearching && query.length < 2 && !selectedCommander && (
+                {!isSearching && query.length < 3 && !selectedCommander && (
                   <div className="py-12 text-center">
                     <p className="text-muted-foreground">
-                      Enter a name to search for legendary creatures
+                      {query.length > 0
+                        ? 'Type at least 3 characters to search'
+                        : 'Enter a name to search for legendary creatures'}
                     </p>
                   </div>
                 )}

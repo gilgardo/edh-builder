@@ -452,10 +452,14 @@ export default function DeckEditPage({ params }: PageProps) {
               </div>
             )}
 
-            {!isSearching && query.length < 2 && (
+            {!isSearching && query.length < 3 && (
               <div className="py-12 text-center">
                 <Search className="text-muted-foreground mx-auto h-12 w-12" />
-                <p className="text-muted-foreground mt-4">Search for cards to add to your deck</p>
+                <p className="text-muted-foreground mt-4">
+                  {query.length > 0
+                    ? 'Type at least 3 characters to search'
+                    : 'Search for cards to add to your deck'}
+                </p>
               </div>
             )}
           </div>
