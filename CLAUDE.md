@@ -14,7 +14,27 @@ EDH Builder is a web application for building, sharing, and discovering Magic: T
 - **State Management**: TanStack Query (React Query) v5
 - **Validation**: Zod schemas
 - **Package Manager**: pnpm
+- **Containerization**: Docker + Docker Compose
 - **Deployment**: Vercel
+
+## Docker Development Environment
+
+**IMPORTANT**: This project runs entirely in Docker containers. There is no local `node_modules` folder - all dependencies are installed inside the container.
+
+### Container Names
+- `edh-builder-app` - Next.js application (port 3001)
+- `edh-builder-db` - PostgreSQL database (port 5432)
+- `edh-builder-prisma-studio` - Prisma Studio (port 5555, optional)
+
+### Running Commands
+All pnpm commands must be executed inside the container:
+
+```bash
+# Pattern: docker exec <container-name> <command>
+docker exec edh-builder-app pnpm typecheck
+docker exec edh-builder-app pnpm lint
+docker exec edh-builder-app pnpm build
+```
 
 ## Project Structure
 
@@ -88,21 +108,29 @@ src/
 
 ## Common Commands
 
-```bash
-# Development
-pnpm dev                    # Start dev server
-pnpm build                  # Production build
-pnpm lint                   # Run ESLint
-pnpm lint:fix               # Fix ESLint errors
-pnpm format                 # Run Prettier
-pnpm typecheck              # TypeScript check
+**All commands must be run inside the Docker container using `docker exec`.**
 
-# Database
-pnpm db:generate            # Generate Prisma client
-pnpm db:migrate             # Run migrations
-pnpm db:push                # Push schema to DB
-pnpm db:studio              # Open Prisma Studio
-pnpm db:seed                # Seed database
+```bash
+# Docker Compose
+docker compose up -d        # Start all containers
+docker compose down         # Stop all containers
+docker compose logs -f app  # Follow app logs
+
+# Development (run inside container)
+docker exec edh-builder-app pnpm build        # Production build
+docker exec edh-builder-app pnpm lint         # Run ESLint
+docker exec edh-builder-app pnpm lint:fix     # Fix ESLint errors
+docker exec edh-builder-app pnpm format       # Run Prettier
+docker exec edh-builder-app pnpm typecheck    # TypeScript check
+
+# Database (run inside container)
+docker exec edh-builder-app pnpm db:generate  # Generate Prisma client
+docker exec edh-builder-app pnpm db:migrate   # Run migrations
+docker exec edh-builder-app pnpm db:push      # Push schema to DB
+docker exec edh-builder-app pnpm db:seed      # Seed database
+
+# Prisma Studio (use dedicated container)
+docker compose --profile tools up prisma-studio
 ```
 
 ## Environment Variables
@@ -169,6 +197,12 @@ Available classes: `gradient-azorius`, `gradient-dimir`, `gradient-rakdos`, etc.
 
 ## Development Notes
 
+### Docker Setup
+- Source code is mounted as a volume for hot reload
+- `node_modules` lives only inside the container (not on host)
+- Prisma client is persisted in a named volume between rebuilds
+- App runs on `http://localhost:3001` (mapped from container port 3000)
+
 ### Tailwind v4
 This project uses Tailwind CSS v4 with CSS-based configuration. Colors are defined in `src/app/globals.css` using the `@theme inline` directive.
 
@@ -176,4 +210,11 @@ This project uses Tailwind CSS v4 with CSS-based configuration. Colors are defin
 Using the beta version of NextAuth v5. Configuration is in `src/lib/auth.ts`.
 
 ### Prisma
-Prisma client is generated to `node_modules/.prisma/client`. Run `pnpm db:generate` after schema changes.
+Prisma client is generated to `node_modules/.prisma/client`. Run `docker exec edh-builder-app pnpm db:generate` after schema changes.
+
+### Useful Aliases (optional)
+Add to your shell config for convenience:
+```bash
+alias edh="docker exec edh-builder-app"
+# Usage: edh pnpm typecheck
+```
