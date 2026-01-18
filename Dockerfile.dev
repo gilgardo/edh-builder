@@ -1,17 +1,9 @@
 # Development Dockerfile for EDH Builder
 # Supports hot reload with volume mounting
 
-FROM node:20-alpine
+FROM next-react-dev:latest
 
-# Install pnpm globally
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Install OpenSSL for Prisma (required on Alpine) and useful dev tools
-RUN apk add --no-cache \
-  openssl \
-  libc6-compat \
-  zsh \
-  tmux
+# Base image provides Node, pnpm, zsh, tmux and common dev tools
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +15,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Generate Prisma client
 RUN pnpm db:generate

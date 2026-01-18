@@ -48,28 +48,44 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // The Zod schema validates the shape, so we can safely cast to ScryfallCard
     const card = await syncCardFromScryfall(data.scryfallCard as unknown as ScryfallCard);
 
-    // Upsert the deck card relationship
-    const deckCard = await prisma.deckCard.upsert({
+    // Check if card already exists in deck
+    const existingDeckCard = await prisma.deckCard.findUnique({
       where: {
         deckId_cardId: {
           deckId,
           cardId: card.id,
         },
       },
-      update: {
-        quantity: data.quantity,
-        category: data.category,
-      },
-      create: {
-        deckId,
-        cardId: card.id,
-        quantity: data.quantity,
-        category: data.category,
-      },
-      include: {
-        card: true,
-      },
     });
+
+    // If card exists, increment quantity; otherwise create with specified quantity
+    const deckCard = existingDeckCard
+      ? await prisma.deckCard.update({
+          where: {
+            deckId_cardId: {
+              deckId,
+              cardId: card.id,
+            },
+          },
+          data: {
+            quantity: existingDeckCard.quantity + data.quantity,
+            category: data.category,
+          },
+          include: {
+            card: true,
+          },
+        })
+      : await prisma.deckCard.create({
+          data: {
+            deckId,
+            cardId: card.id,
+            quantity: data.quantity,
+            category: data.category,
+          },
+          include: {
+            card: true,
+          },
+        });
 
     // If this is a commander, update the deck's commanderId
     if (data.category === 'COMMANDER') {

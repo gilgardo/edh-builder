@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { ManaCost } from '@/components/cards/mana-cost';
 import { Plus, Trash2 } from 'lucide-react';
 import type { DisplayCard } from '@/types/cards';
+import { isBasicLand } from '@/types/scryfall.types';
+import { cn } from '@/lib/utils';
 
 type CardRowProps = {
   card: DisplayCard;
@@ -23,13 +25,30 @@ export function CardRow({
   const isDeck = variant === 'deck';
   const isSearch = variant === 'search';
 
+  // Check if this card has invalid quantity (more than 1 copy of non-basic land)
+  const hasInvalidQuantity =
+    isDeck && quantity && quantity > 1 && !isBasicLand(card);
+
   return (
     <div
-      className={`hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5 ${className ?? ''}`}
+      className={cn(
+        'hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5',
+        hasInvalidQuantity && 'bg-amber-500/10 hover:bg-amber-500/20',
+        className
+      )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {isDeck && quantity && (
-          <span className="text-muted-foreground w-5 text-sm">{quantity}x</span>
+          <span
+            className={cn(
+              'w-5 text-sm',
+              hasInvalidQuantity
+                ? 'font-semibold text-amber-600 dark:text-amber-400'
+                : 'text-muted-foreground'
+            )}
+          >
+            {quantity}x
+          </span>
         )}
 
         {card.manaCost && <ManaCost cost={card.manaCost} size="sm" />}

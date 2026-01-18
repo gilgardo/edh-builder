@@ -37,6 +37,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.90.16",
     "bcryptjs": "^3.0.3",
+    "react-to-pdf": "3.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -64,6 +65,7 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "prisma": "^6.19.1",
     "tailwindcss": "^4",
+    "typescript-language-server": "^4.3.3",
     "typescript": "^5"
   }
 }

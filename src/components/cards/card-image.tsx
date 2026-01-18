@@ -14,6 +14,7 @@ interface CardImageProps {
   priority?: boolean;
 }
 
+// MTG card aspect ratio is 488:680 (width:height)
 const sizeMap = {
   small: { width: 146, height: 204 },
   normal: { width: 244, height: 340 },
@@ -26,32 +27,42 @@ export function CardImage({ card, size = 'normal', className, priority = false }
   const dimensions = sizeMap[size];
   const imageUrl = getCardImageUrl(card, size);
 
+  // Small size uses fixed dimensions (used in flex layouts)
+  // Normal/large use responsive width (used in grids)
+  const isFixedSize = size === 'small';
+
   if (hasError) {
     return (
       <div
         className={cn(
-          'flex items-center justify-center rounded-lg bg-muted text-muted-foreground',
+          'bg-muted text-muted-foreground flex items-center justify-center rounded-lg aspect-[488/680]',
+          isFixedSize ? 'shrink-0' : 'w-full',
           className
         )}
-        style={{ width: dimensions.width, height: dimensions.height }}
+        style={isFixedSize ? { width: dimensions.width } : undefined}
       >
-        <span className="text-sm">{card.name}</span>
+        <span className="text-sm text-center px-2">{card.name}</span>
       </div>
     );
   }
 
   return (
-    <div className={cn('relative', className)} style={{ width: dimensions.width, height: dimensions.height }}>
-      {isLoading && (
-        <Skeleton className="absolute inset-0 rounded-lg" />
+    <div
+      className={cn(
+        'relative aspect-[488/680]',
+        isFixedSize ? 'shrink-0' : 'w-full',
+        className
       )}
+      style={isFixedSize ? { width: dimensions.width } : undefined}
+    >
+      {isLoading && <Skeleton className="absolute inset-0 rounded-lg" />}
       <Image
         src={imageUrl}
         alt={card.name}
         width={dimensions.width}
         height={dimensions.height}
         className={cn(
-          'rounded-lg transition-opacity duration-300',
+          'rounded-lg transition-opacity duration-300 w-full h-full object-cover',
           isLoading ? 'opacity-0' : 'opacity-100'
         )}
         onLoad={() => setIsLoading(false)}

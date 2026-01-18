@@ -131,3 +131,31 @@ export function isLegalCommander(card: ScryfallCard): boolean {
         (card.oracle_text?.includes('can be your commander') ?? false)))
   );
 }
+
+/**
+ * Basic land names that can have unlimited copies in Commander
+ */
+const BASIC_LAND_NAMES = [
+  'Plains',
+  'Island',
+  'Swamp',
+  'Mountain',
+  'Forest',
+  'Wastes', // Colorless basic land
+];
+
+/**
+ * Check if a card is a basic land (can have unlimited copies in Commander)
+ */
+export function isBasicLand(card: { name: string; typeLine: string } | ScryfallCard): boolean {
+  // Handle both our internal Card type (typeLine) and ScryfallCard (type_line)
+  const typeLine = 'type_line' in card ? card.type_line : card.typeLine;
+
+  // Check if it's a Basic Land type
+  if (!typeLine.toLowerCase().includes('basic') || !typeLine.toLowerCase().includes('land')) {
+    return false;
+  }
+
+  // Also verify it's one of the standard basic lands
+  return BASIC_LAND_NAMES.some((basicName) => card.name.includes(basicName));
+}
