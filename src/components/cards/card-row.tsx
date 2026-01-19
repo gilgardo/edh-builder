@@ -10,6 +10,7 @@ type CardRowProps = {
   quantity?: number;
   variant?: 'deck' | 'search';
   onAction?: (id: string) => void;
+  onHover?: (card: DisplayCard | null) => void;
   isPending?: boolean;
   className?: string;
 };
@@ -19,6 +20,7 @@ export function CardRow({
   quantity,
   variant = 'deck',
   onAction,
+  onHover,
   isPending,
   className,
 }: CardRowProps) {
@@ -32,10 +34,12 @@ export function CardRow({
   return (
     <div
       className={cn(
-        'hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5',
+        'hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5 cursor-pointer',
         hasInvalidQuantity && 'bg-amber-500/10 hover:bg-amber-500/20',
         className
       )}
+      onMouseEnter={() => onHover?.(card)}
+      onMouseLeave={() => onHover?.(null)}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {isDeck && quantity && (

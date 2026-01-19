@@ -12,12 +12,11 @@ services:
       - .:/app
       # Exclude node_modules (use container's node_modules)
       - /app/node_modules
-      # Exclude .next build directory
-      - /app/.next
       # Persist Prisma client between rebuilds
       - prisma-client:/app/node_modules/.prisma
     environment:
       - NODE_ENV=development
+      - TURBOPACK=0
       - DATABASE_URL=postgresql://edh_user:edh_password@db:5432/edh_builder?schema=public
       - NEXTAUTH_URL=http://localhost:3001
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}

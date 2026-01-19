@@ -1,6 +1,16 @@
 import type { ScryfallCard } from './scryfall.types';
 
 /**
+ * Image URIs for a card (subset of Scryfall's format)
+ * Using unknown for compatibility with Prisma's JsonValue
+ */
+export type CardImageUris = {
+  small?: string;
+  normal?: string;
+  large?: string;
+} | null;
+
+/**
  * Unified card display type - use this for all UI components
  * Normalizes Scryfall snake_case to camelCase
  */
@@ -20,6 +30,7 @@ export interface DeckCard {
   category: string;
   quantity: number;
   card: DisplayCard;
+  cardId: string;
 }
 
 /**
@@ -30,6 +41,27 @@ export interface Commander {
   typeLine: string;
   manaCost: string | null;
   imageUris: unknown;
+}
+
+/**
+ * A card that can be previewed (has name and image)
+ */
+export interface PreviewableCard {
+  name: string;
+  imageUris: unknown;
+}
+
+/**
+ * Get the image URL from a card's imageUris
+ */
+export function getDisplayCardImageUrl(
+  card: PreviewableCard | null | undefined,
+  size: 'small' | 'normal' | 'large' = 'normal'
+): string | null {
+  if (!card?.imageUris) return null;
+  const uris = card.imageUris as CardImageUris;
+  if (!uris) return null;
+  return uris[size] ?? null;
 }
 
 /**

@@ -3,7 +3,7 @@
 import { use, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Search, X, Plus, Eye, Settings, Layers, Filter } from 'lucide-react';
+import { ArrowLeft, Search, Eye, Settings, Layers } from 'lucide-react';
 
 import { useDeck, useUpdateDeck } from '@/hooks/use-deck';
 import { useAddCardToDeck, useRemoveCardFromDeck } from '@/hooks/use-deck-cards';
@@ -31,27 +31,19 @@ import {
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Container } from '@/components/layout/container';
-import { CardImage } from '@/components/cards/card-image';
-import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { MobileCardSearchBar } from '@/components/cards/mobile-card-search-bar';
 import { CardSearchSheet } from '@/components/cards/card-search-sheet';
 import { CardSearchGrid } from '@/components/cards/card-search-grid';
+import { CompactCardSearch } from '@/components/cards/compact-card-search';
 import { DeckCardList } from '@/components/decks/deck-card-list';
+import { CardPreviewPanel } from '@/components/decks/card-preview-panel';
 import type { ScryfallCard } from '@/types/scryfall.types';
-import type { DeckCard } from '@/types/cards';
+import type { DeckCard, PreviewableCard } from '@/types/cards';
 import { cn } from '@/lib/utils';
 
 interface PageProps {
   params: Promise<{ deckId: string }>;
 }
-
-const MTG_COLORS = [
-  { value: 'W', label: 'White', className: 'bg-mtg-white-500 text-mtg-black-800' },
-  { value: 'U', label: 'Blue', className: 'bg-mtg-blue-500 text-white' },
-  { value: 'B', label: 'Black', className: 'bg-mtg-black-500 text-mtg-white-500' },
-  { value: 'R', label: 'Red', className: 'bg-mtg-red-500 text-white' },
-  { value: 'G', label: 'Green', className: 'bg-mtg-green-500 text-white' },
-];
 
 // Group cards by type
 function groupCardsByType(cards: DeckCard[] | undefined): Record<string, DeckCard[]> {
@@ -98,10 +90,10 @@ export default function DeckEditPage({ params }: PageProps) {
   const { deckId } = use(params);
   const { data: session } = useSession();
 
-  // UI-only state (allowed)
-  const [showFilters, setShowFilters] = useState(false);
+  // UI-only state
   const [activeTab, setActiveTab] = useState<'search' | 'decklist'>('decklist');
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<PreviewableCard | null>(null);
 
   const { data: deckResponse, isLoading, error } = useDeck(deckId);
   const deck = deckResponse?.deck;
@@ -124,11 +116,9 @@ export default function DeckEditPage({ params }: PageProps) {
     isLoading: isSearching,
     params: searchParams,
     setQuery,
-    toggleColor,
-    setType,
   } = search;
 
-  const { query, type, colorIdentity } = searchParams;
+  const { query } = searchParams;
 
   const handleAddCard = useCallback(
     async (card: ScryfallCard) => {
@@ -155,6 +145,10 @@ export default function DeckEditPage({ params }: PageProps) {
     },
     [removeCard, deckId]
   );
+
+  const handleCardHover = useCallback((card: PreviewableCard | null) => {
+    setHoveredCard(card);
+  }, []);
 
   if (isLoading) {
     return (
@@ -316,141 +310,33 @@ export default function DeckEditPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Desktop: Two-panel layout (hidden on mobile) */}
+      {/* Desktop: Two-panel Moxfield-style layout */}
       <div className="hidden min-h-0 flex-1 md:flex">
-        {/* Left Panel - Card Search */}
-        <div className="flex w-1/2 flex-col overflow-hidden border-r">
-          <div className="shrink-0 space-y-4 border-b p-4">
-            <div className="relative">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                value={searchParams.query || ''}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search cards to add..."
-                className="pl-10"
-              />
-              {searchParams.query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className={cn(showFilters && 'bg-muted')}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filters
-              </Button>
-              {searchParams.colorIdentity.length > 0 && (
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <span>Limited to:</span>
-                  <ColorIdentityBadges colors={searchParams.colorIdentity} size="sm" />
-                </div>
-              )}
-            </div>
-            {showFilters && (
-              <div className="bg-muted/30 flex flex-wrap items-center gap-4 rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Colors:</span>
-                  <div className="flex gap-1">
-                    {MTG_COLORS.map((color) => (
-                      <button
-                        key={color.value}
-                        type="button"
-                        onClick={() => toggleColor(color.value)}
-                        className={cn(
-                          'h-6 w-6 rounded-full text-xs font-bold transition-all',
-                          color.className,
-                          colorIdentity.includes(color.value)
-                            ? 'ring-ring ring-2 ring-offset-1'
-                            : 'opacity-50 hover:opacity-75'
-                        )}
-                      >
-                        {color.value}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Type:</span>
-                  <Select value={type || ''} onValueChange={setType}>
-                    <SelectTrigger className="h-8 w-32">
-                      <SelectValue placeholder="Any" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="creature">Creature</SelectItem>
-                      <SelectItem value="instant">Instant</SelectItem>
-                      <SelectItem value="sorcery">Sorcery</SelectItem>
-                      <SelectItem value="artifact">Artifact</SelectItem>
-                      <SelectItem value="enchantment">Enchantment</SelectItem>
-                      <SelectItem value="planeswalker">Planeswalker</SelectItem>
-                      <SelectItem value="land">Land</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex-1 overflow-auto p-4">
-            {isSearching && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-488/680 rounded-lg" />
-                ))}
-              </div>
-            )}
-
-            {!isSearching && cards && cards.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-                {cards.map((card) => (
-                  <button
-                    key={card.id}
-                    type="button"
-                    onClick={() => handleAddCard(card)}
-                    disabled={addCard.isPending}
-                    className="group focus:ring-ring relative overflow-hidden rounded-lg transition-transform hover:scale-105 focus:ring-2 focus:outline-none"
-                  >
-                    <CardImage card={card} size="normal" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
-                      <div className="flex flex-col items-center text-white">
-                        <Plus className="h-8 w-8" />
-                        <span className="mt-1 text-sm font-medium">Add</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {!isSearching && query.length >= 3 && cards?.length === 0 && (
-              <div className="py-12 text-center">
-                <p className="text-muted-foreground">No cards found matching &quot;{query}&quot;</p>
-              </div>
-            )}
-
-            {!isSearching && query.length < 3 && (
-              <div className="py-12 text-center">
-                <Search className="text-muted-foreground mx-auto h-12 w-12" />
-                <p className="text-muted-foreground mt-4">
-                  {query.length > 0
-                    ? 'Type at least 3 characters to search'
-                    : 'Search for cards to add to your deck'}
-                </p>
-              </div>
-            )}
-          </div>
+        {/* Left Panel - Card Preview (Fixed Width) */}
+        <div className="w-64 shrink-0 border-r bg-muted/30 p-4 lg:w-72">
+          <CardPreviewPanel
+            card={hoveredCard}
+            fallbackCard={deck.commander}
+            className="sticky top-4"
+          />
         </div>
 
-        {/* Right Panel - Deck List */}
-        <div className="flex w-1/2 flex-col overflow-hidden">
+        {/* Right Panel - Search + Deck List (Full Width, Multi-Column) */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Compact Search Bar */}
+          <div className="shrink-0 border-b p-4">
+            <CompactCardSearch
+              value={query}
+              onChange={setQuery}
+              onAddCard={handleAddCard}
+              onCardHover={handleCardHover}
+              cards={cards}
+              isLoading={isSearching}
+              isAdding={addCard.isPending}
+            />
+          </div>
+
+          {/* Deck List with Multi-Column Layout */}
           <DeckCardList
             commander={deck.commander}
             cardGroups={cardGroups}
@@ -458,6 +344,8 @@ export default function DeckEditPage({ params }: PageProps) {
             colorIdentity={deck.colorIdentity}
             onRemoveCard={handleRemoveCard}
             isRemoving={removeCard.isPending}
+            onCardHover={handleCardHover}
+            columns={3}
           />
         </div>
       </div>
@@ -492,7 +380,7 @@ export default function DeckEditPage({ params }: PageProps) {
           className="fixed right-6 bottom-6 z-40 h-14 w-14 rounded-full shadow-lg md:hidden"
           size="icon"
         >
-          <Plus className="h-6 w-6" />
+          <Search className="h-6 w-6" />
         </Button>
       )}
 
@@ -583,25 +471,25 @@ function DeckEditSkeleton() {
         <Skeleton className="h-10" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-488/680" />
+            <Skeleton key={i} className="aspect-[488/680]" />
           ))}
         </div>
       </div>
       {/* Desktop skeleton */}
-      <div className="hidden w-1/2 border-r p-4 md:block">
-        <Skeleton className="mb-4 h-10" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-488/680" />
-          ))}
+      <div className="hidden md:flex md:flex-1">
+        <div className="w-64 border-r p-4 lg:w-72">
+          <Skeleton className="aspect-[488/680] rounded-lg" />
         </div>
-      </div>
-      <div className="hidden w-1/2 p-4 md:block">
-        <Skeleton className="mb-4 h-10" />
-        <div className="space-y-2">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <Skeleton key={i} className="h-8" />
-          ))}
+        <div className="flex-1 p-4">
+          <Skeleton className="mb-4 h-10" />
+          <div className="columns-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="mb-4 break-inside-avoid">
+                <Skeleton className="mb-2 h-5 w-20" />
+                <Skeleton className="h-32" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
