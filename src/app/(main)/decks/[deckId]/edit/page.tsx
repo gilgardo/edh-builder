@@ -31,10 +31,9 @@ import {
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Container } from '@/components/layout/container';
-import { MobileCardSearchBar } from '@/components/cards/mobile-card-search-bar';
 import { CardSearchSheet } from '@/components/cards/card-search-sheet';
 import { CardSearchGrid } from '@/components/cards/card-search-grid';
-import { CompactCardSearch } from '@/components/cards/compact-card-search';
+import { CardSearchInput } from '@/components/cards/card-search-input';
 import { DeckCardList } from '@/components/decks/deck-card-list';
 import { CardPreviewPanel } from '@/components/decks/card-preview-panel';
 import type { ScryfallCard } from '@/types/scryfall.types';
@@ -259,13 +258,15 @@ export default function DeckEditPage({ params }: PageProps) {
 
       {/* Mobile: Compact Searchbar */}
       <div className="shrink-0 border-b px-4 py-3 md:hidden">
-        <MobileCardSearchBar
+        <CardSearchInput
           value={searchParams.query || ''}
           onChange={setQuery}
           onOpenFullSearch={() => setSearchSheetOpen(true)}
           cards={cards}
-          onAddCard={handleAddCard}
+          onCardClick={handleAddCard}
           isLoading={isSearching}
+          maxResults={6}
+          placeholder="Search cards..."
         />
       </div>
 
@@ -325,10 +326,10 @@ export default function DeckEditPage({ params }: PageProps) {
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Compact Search Bar */}
           <div className="shrink-0 border-b p-4">
-            <CompactCardSearch
+            <CardSearchInput
               value={query}
               onChange={setQuery}
-              onAddCard={handleAddCard}
+              onCardClick={handleAddCard}
               onCardHover={handleCardHover}
               cards={cards}
               isLoading={isSearching}
