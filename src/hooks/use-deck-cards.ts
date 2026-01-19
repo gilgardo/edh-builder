@@ -16,6 +16,13 @@ interface RemoveCardData {
   cardId: string;
 }
 
+interface UpdateCardData {
+  deckId: string;
+  cardId: string;
+  quantity?: number;
+  category?: CardCategory;
+}
+
 async function addCardToDeck({ deckId, scryfallCard, quantity = 1, category = 'MAIN' }: AddCardData) {
   const response = await fetch(`/api/decks/${deckId}/cards`, {
     method: 'POST',
@@ -42,6 +49,19 @@ async function removeCardFromDeck({ deckId, cardId }: RemoveCardData) {
   return response.json();
 }
 
+async function updateDeckCard({ deckId, cardId, quantity, category }: UpdateCardData) {
+  const response = await fetch(`/api/decks/${deckId}/cards`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardId, quantity, category }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error ?? 'Failed to update card');
+  }
+  return response.json();
+}
+
 export function useAddCardToDeck() {
   const queryClient = useQueryClient();
 
@@ -58,6 +78,17 @@ export function useRemoveCardFromDeck() {
 
   return useMutation({
     mutationFn: removeCardFromDeck,
+    onSuccess: (_, { deckId }) => {
+      queryClient.invalidateQueries({ queryKey: ['deck', deckId] });
+    },
+  });
+}
+
+export function useUpdateDeckCard() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateDeckCard,
     onSuccess: (_, { deckId }) => {
       queryClient.invalidateQueries({ queryKey: ['deck', deckId] });
     },

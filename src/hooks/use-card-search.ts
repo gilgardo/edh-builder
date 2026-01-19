@@ -136,7 +136,7 @@ export function useCardSearch(options: UseCardSearchOptions = {}, enabled = true
     queryKey: ['cards', 'search', mergedParams],
     queryFn: () => searchCards(mergedParams),
     enabled: enabled && mergedParams.query.length >= 3,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 60 * 1000,
     placeholderData: (prev) => prev,
   });
 

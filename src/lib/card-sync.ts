@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import type { ScryfallCard } from '@/types/scryfall.types';
 
@@ -51,7 +52,7 @@ export async function syncCardFromScryfall(card: ScryfallCard) {
     toughness: card.toughness ?? null,
     loyalty: card.loyalty ?? null,
     isLegalCommander,
-    imageUris: imageUris as object | null,
+    imageUris: imageUris ? (imageUris as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
     setCode: card.set,
     setName: card.set_name,
     rarity: mapRarity(card.rarity),

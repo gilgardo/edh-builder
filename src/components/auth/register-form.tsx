@@ -59,7 +59,7 @@ export function RegisterForm({ callbackUrl = '/decks' }: RegisterFormProps) {
         // Registration succeeded but sign-in failed - redirect to login
         router.push('/login?registered=true');
       } else {
-        router.push(callbackUrl);
+        router.push(callbackUrl as '/');
         router.refresh();
       }
     } catch {

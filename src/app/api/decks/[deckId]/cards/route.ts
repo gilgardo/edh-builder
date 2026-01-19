@@ -121,6 +121,72 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 }
 
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { deckId } = await params;
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check ownership
+    const deck = await prisma.deck.findUnique({
+      where: { id: deckId },
+      select: { userId: true },
+    });
+
+    if (!deck) {
+      return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
+    }
+
+    if (deck.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { cardId, quantity, category } = await request.json();
+
+    if (!cardId) {
+      return NextResponse.json({ error: 'Card ID is required' }, { status: 400 });
+    }
+
+    // Build update data
+    type UpdateData = { quantity?: number; category?: 'MAIN' | 'COMMANDER' | 'SIDEBOARD' | 'CONSIDERING' };
+    const updateData: UpdateData = {};
+    if (quantity !== undefined) {
+      if (quantity < 1 || quantity > 99) {
+        return NextResponse.json({ error: 'Quantity must be between 1 and 99' }, { status: 400 });
+      }
+      updateData.quantity = quantity;
+    }
+    if (category !== undefined) {
+      const validCategories = ['MAIN', 'COMMANDER', 'SIDEBOARD', 'CONSIDERING'] as const;
+      if (!validCategories.includes(category)) {
+        return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
+      }
+      updateData.category = category as UpdateData['category'];
+    }
+
+    const deckCard = await prisma.deckCard.update({
+      where: {
+        deckId_cardId: {
+          deckId,
+          cardId,
+        },
+      },
+      data: updateData,
+      include: {
+        card: true,
+      },
+    });
+
+    return NextResponse.json({ deckCard });
+  } catch (error) {
+    console.error('Update deck card error:', error);
+    return NextResponse.json({ error: 'Failed to update card' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { deckId } = await params;

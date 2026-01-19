@@ -1,20 +1,26 @@
 'use client';
 
-import { Layers } from 'lucide-react';
+import { Layers, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
 import { Commander, DeckCard, DisplayCard, PreviewableCard } from '@/types/cards';
 import { CardRow } from '../cards/card-row';
 import { cn } from '@/lib/utils';
+import type { CardCategory } from '@/schemas/deck.schema';
 
 interface DeckCardListProps {
   commander: Commander | null;
   cardGroups: Record<string, DeckCard[]>;
+  consideringCards?: DeckCard[];
   totalCards: number;
   colorIdentity: string[];
   onRemoveCard: (cardId: string) => void;
+  onChangePrinting?: (card: DisplayCard) => void;
+  onChangeQuantity?: (card: DisplayCard, quantity: number) => void;
+  onMoveToCategory?: (card: DisplayCard, category: CardCategory) => void;
   isRemoving: boolean;
+  isUpdating?: boolean;
   showHeader?: boolean;
   onCardHover?: (card: PreviewableCard | null) => void;
   columns?: 1 | 2 | 3 | 4;
@@ -23,10 +29,15 @@ interface DeckCardListProps {
 export function DeckCardList({
   commander,
   cardGroups,
+  consideringCards = [],
   totalCards,
   colorIdentity,
   onRemoveCard,
+  onChangePrinting,
+  onChangeQuantity,
+  onMoveToCategory,
   isRemoving,
+  isUpdating = false,
   showHeader = true,
   onCardHover,
   columns = 1,
@@ -49,6 +60,8 @@ export function DeckCardList({
     3: 'sm:columns-2 lg:columns-3',
     4: 'sm:columns-2 lg:columns-3 xl:columns-4',
   }[columns];
+
+  const isPending = isRemoving || isUpdating;
 
   return (
     <div className="flex h-full flex-col">
@@ -97,10 +110,14 @@ export function DeckCardList({
                     key={deckCard.card.id}
                     card={deckCard.card}
                     quantity={deckCard.quantity}
+                    category={deckCard.category as CardCategory}
                     variant="deck"
                     onAction={onRemoveCard}
                     onHover={handleCardHover}
-                    isPending={isRemoving}
+                    onChangePrinting={onChangePrinting}
+                    onChangeQuantity={onChangeQuantity}
+                    onMoveToCategory={onMoveToCategory}
+                    isPending={isPending}
                   />
                 ))}
               </div>
@@ -108,7 +125,40 @@ export function DeckCardList({
           ))}
         </div>
 
-        {Object.keys(cardGroups).length === 0 && !commander && (
+        {/* Considering Section */}
+        {consideringCards.length > 0 && (
+          <div className="mt-6 border-t pt-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <h3 className="text-sm font-medium">Considering</h3>
+              <Badge variant="outline" className="text-xs h-5">
+                {consideringCards.reduce((acc, c) => acc + c.quantity, 0)}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground text-xs mb-3">
+              Cards you&apos;re thinking about adding. Not counted in deck total.
+            </p>
+            <div className="space-y-0.5 rounded-lg border bg-card/50 p-1">
+              {consideringCards.map((deckCard) => (
+                <CardRow
+                  key={deckCard.card.id}
+                  card={deckCard.card}
+                  quantity={deckCard.quantity}
+                  category="CONSIDERING"
+                  variant="deck"
+                  onAction={onRemoveCard}
+                  onHover={handleCardHover}
+                  onChangePrinting={onChangePrinting}
+                  onChangeQuantity={onChangeQuantity}
+                  onMoveToCategory={onMoveToCategory}
+                  isPending={isPending}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {Object.keys(cardGroups).length === 0 && !commander && consideringCards.length === 0 && (
           <div className="py-12 text-center">
             <Layers className="text-muted-foreground mx-auto h-12 w-12" />
             <h3 className="mt-4 font-semibold">No cards yet</h3>

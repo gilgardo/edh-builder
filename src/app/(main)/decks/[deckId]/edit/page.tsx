@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { ArrowLeft, Search, Eye, Settings, Layers } from 'lucide-react';
 
 import { useDeck, useUpdateDeck } from '@/hooks/use-deck';
-import { useAddCardToDeck, useRemoveCardFromDeck } from '@/hooks/use-deck-cards';
+import { useAddCardToDeck, useRemoveCardFromDeck, useUpdateDeckCard } from '@/hooks/use-deck-cards';
 import { useCardSearch } from '@/hooks/use-card-search';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,22 +34,27 @@ import { Container } from '@/components/layout/container';
 import { CardSearchSheet } from '@/components/cards/card-search-sheet';
 import { CardSearchGrid } from '@/components/cards/card-search-grid';
 import { CardSearchInput } from '@/components/cards/card-search-input';
+import { PrintingsModal } from '@/components/cards/printings-modal';
 import { DeckCardList } from '@/components/decks/deck-card-list';
 import { CardPreviewPanel } from '@/components/decks/card-preview-panel';
 import type { ScryfallCard } from '@/types/scryfall.types';
-import type { DeckCard, PreviewableCard } from '@/types/cards';
+import type { DeckCard, DisplayCard, PreviewableCard } from '@/types/cards';
+import type { CardCategory } from '@/schemas/deck.schema';
 import { cn } from '@/lib/utils';
 
 interface PageProps {
   params: Promise<{ deckId: string }>;
 }
 
-// Group cards by type
+// Group cards by type (excludes CONSIDERING cards)
 function groupCardsByType(cards: DeckCard[] | undefined): Record<string, DeckCard[]> {
   const groups: Record<string, DeckCard[]> = {};
   if (!cards) return {};
 
   for (const deckCard of cards) {
+    // Skip considering cards - they're shown in a separate section
+    if (deckCard.category === 'CONSIDERING') continue;
+
     const typeLine = deckCard.card.typeLine.toLowerCase();
     let type = 'Other';
 
@@ -85,6 +90,14 @@ function groupCardsByType(cards: DeckCard[] | undefined): Record<string, DeckCar
   return sortedGroups;
 }
 
+// Get considering cards
+function getConsideringCards(cards: DeckCard[] | undefined): DeckCard[] {
+  if (!cards) return [];
+  return cards
+    .filter((card) => card.category === 'CONSIDERING')
+    .sort((a, b) => a.card.name.localeCompare(b.card.name));
+}
+
 export default function DeckEditPage({ params }: PageProps) {
   const { deckId } = use(params);
   const { data: session } = useSession();
@@ -93,29 +106,33 @@ export default function DeckEditPage({ params }: PageProps) {
   const [activeTab, setActiveTab] = useState<'search' | 'decklist'>('decklist');
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<PreviewableCard | null>(null);
+  const [printingsModalOpen, setPrintingsModalOpen] = useState(false);
+  const [selectedCardForPrinting, setSelectedCardForPrinting] = useState<DisplayCard | null>(null);
 
   const { data: deckResponse, isLoading, error } = useDeck(deckId);
   const deck = deckResponse?.deck;
 
-  const cardGroups = useMemo(
-    () => groupCardsByType(deck?.cards.filter((card) => card.cardId != deck.commanderId)),
+  const nonCommanderCards = useMemo(
+    () => deck?.cards.filter((card) => card.cardId !== deck.commanderId),
     [deck]
   );
-  const totalCards = deck?.cards.reduce(
-    (acc: number, c: { quantity: number }) => acc + c.quantity,
-    0
+  const cardGroups = useMemo(() => groupCardsByType(nonCommanderCards), [nonCommanderCards]);
+  const consideringCards = useMemo(
+    () => getConsideringCards(nonCommanderCards),
+    [nonCommanderCards]
   );
+  // Total cards excludes considering cards
+  const totalCards = deck?.cards
+    .filter((c) => c.category !== 'CONSIDERING')
+    .reduce((acc: number, c: { quantity: number }) => acc + c.quantity, 0);
+
   const updateDeck = useUpdateDeck();
   const addCard = useAddCardToDeck();
   const removeCard = useRemoveCardFromDeck();
+  const updateCard = useUpdateDeckCard();
 
   const search = useCardSearch({ colorIdentity: deck?.colorIdentity ?? [] }, !!deck);
-  const {
-    cards,
-    isLoading: isSearching,
-    params: searchParams,
-    setQuery,
-  } = search;
+  const { cards, isLoading: isSearching, params: searchParams, setQuery } = search;
 
   const { query } = searchParams;
 
@@ -148,6 +165,58 @@ export default function DeckEditPage({ params }: PageProps) {
   const handleCardHover = useCallback((card: PreviewableCard | null) => {
     setHoveredCard(card);
   }, []);
+
+  const handleChangePrinting = useCallback((card: DisplayCard) => {
+    setSelectedCardForPrinting(card);
+    setPrintingsModalOpen(true);
+  }, []);
+
+  const handleSelectPrinting = useCallback(
+    async (scryfallCard: ScryfallCard) => {
+      if (!selectedCardForPrinting || !deck) return;
+      // Remove the old card and add the new printing
+      try {
+        // Find the current deck card to get its category and quantity
+        const currentDeckCard = deck.cards.find((dc) => dc.card.id === selectedCardForPrinting.id);
+        if (!currentDeckCard) return;
+
+        // Remove old card
+        await removeCard.mutateAsync({ deckId, cardId: selectedCardForPrinting.id });
+        // Add new printing with same quantity and category
+        await addCard.mutateAsync({
+          deckId,
+          scryfallCard,
+          quantity: currentDeckCard.quantity,
+          category: currentDeckCard.category as CardCategory,
+        });
+      } catch (error) {
+        console.error('Failed to change printing:', error);
+      }
+    },
+    [deck, selectedCardForPrinting, deckId, removeCard, addCard]
+  );
+
+  const handleChangeQuantity = useCallback(
+    async (card: DisplayCard, quantity: number) => {
+      try {
+        await updateCard.mutateAsync({ deckId, cardId: card.id, quantity });
+      } catch (error) {
+        console.error('Failed to change quantity:', error);
+      }
+    },
+    [updateCard, deckId]
+  );
+
+  const handleMoveToCategory = useCallback(
+    async (card: DisplayCard, category: CardCategory) => {
+      try {
+        await updateCard.mutateAsync({ deckId, cardId: card.id, category });
+      } catch (error) {
+        console.error('Failed to move card:', error);
+      }
+    },
+    [updateCard, deckId]
+  );
 
   if (isLoading) {
     return (
@@ -314,7 +383,7 @@ export default function DeckEditPage({ params }: PageProps) {
       {/* Desktop: Two-panel Moxfield-style layout */}
       <div className="hidden min-h-0 flex-1 md:flex">
         {/* Left Panel - Card Preview (Fixed Width) */}
-        <div className="w-64 shrink-0 border-r bg-muted/30 p-4 lg:w-72">
+        <div className="bg-muted/30 w-64 shrink-0 border-r p-4 lg:w-72">
           <CardPreviewPanel
             card={hoveredCard}
             fallbackCard={deck.commander}
@@ -341,10 +410,15 @@ export default function DeckEditPage({ params }: PageProps) {
           <DeckCardList
             commander={deck.commander}
             cardGroups={cardGroups}
+            consideringCards={consideringCards}
             totalCards={totalCards ?? 0}
             colorIdentity={deck.colorIdentity}
             onRemoveCard={handleRemoveCard}
+            onChangePrinting={handleChangePrinting}
+            onChangeQuantity={handleChangeQuantity}
+            onMoveToCategory={handleMoveToCategory}
             isRemoving={removeCard.isPending}
+            isUpdating={updateCard.isPending}
             onCardHover={handleCardHover}
             columns={3}
           />
@@ -365,10 +439,15 @@ export default function DeckEditPage({ params }: PageProps) {
           <DeckCardList
             commander={deck.commander}
             cardGroups={cardGroups}
+            consideringCards={consideringCards}
             totalCards={totalCards ?? 0}
             colorIdentity={deck.colorIdentity}
             onRemoveCard={handleRemoveCard}
+            onChangePrinting={handleChangePrinting}
+            onChangeQuantity={handleChangeQuantity}
+            onMoveToCategory={handleMoveToCategory}
             isRemoving={removeCard.isPending}
+            isUpdating={updateCard.isPending}
             showHeader={false}
           />
         )}
@@ -392,6 +471,16 @@ export default function DeckEditPage({ params }: PageProps) {
         search={search}
         onAddCard={handleAddCard}
         isAdding={addCard.isPending}
+      />
+
+      {/* Printings Modal */}
+      <PrintingsModal
+        open={printingsModalOpen}
+        onOpenChange={setPrintingsModalOpen}
+        cardName={selectedCardForPrinting?.name ?? ''}
+        oracleId={selectedCardForPrinting?.oracleId ?? null}
+        currentScryfallId={selectedCardForPrinting?.scryfallId ?? ''}
+        onSelectPrinting={handleSelectPrinting}
       />
     </div>
   );
@@ -472,14 +561,14 @@ function DeckEditSkeleton() {
         <Skeleton className="h-10" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[488/680]" />
+            <Skeleton key={i} className="aspect-488/680" />
           ))}
         </div>
       </div>
       {/* Desktop skeleton */}
       <div className="hidden md:flex md:flex-1">
         <div className="w-64 border-r p-4 lg:w-72">
-          <Skeleton className="aspect-[488/680] rounded-lg" />
+          <Skeleton className="aspect-488/680 rounded-lg" />
         </div>
         <div className="flex-1 p-4">
           <Skeleton className="mb-4 h-10" />

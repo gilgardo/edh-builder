@@ -16,11 +16,15 @@ export type CardImageUris = {
  */
 export interface DisplayCard {
   id: string;
+  scryfallId?: string;
   name: string;
   typeLine: string;
   manaCost: string | null;
   cmc: number;
   imageUris: unknown;
+  oracleId?: string | null;
+  setCode?: string;
+  setName?: string;
 }
 
 /**
@@ -75,5 +79,8 @@ export function toDisplayCard(card: ScryfallCard): DisplayCard {
     manaCost: card.mana_cost ?? null,
     cmc: card.cmc,
     imageUris: card.image_uris ?? card.card_faces?.[0]?.image_uris ?? null,
+    oracleId: card.oracle_id,
+    setCode: card.set,
+    setName: card.set_name,
   };
 }

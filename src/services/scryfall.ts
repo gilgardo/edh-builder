@@ -269,3 +269,26 @@ export function getCardManaCost(card: ScryfallCard): string | undefined {
 
   return undefined;
 }
+
+/**
+ * Get all printings of a card by oracle_id
+ */
+export async function getCardPrintings(
+  oracleId: string
+): Promise<{ cards: ScryfallCard[]; error?: string }> {
+  const params = new URLSearchParams({
+    q: `oracle_id:${oracleId}`,
+    unique: 'prints',
+    order: 'released',
+    dir: 'desc',
+  });
+
+  const url = `${SCRYFALL_API_BASE}/cards/search?${params}`;
+  const result = await scryfallFetch<ScryfallSearchResponse>(url);
+
+  if (isScryfallError(result)) {
+    return { cards: [], error: result.details };
+  }
+
+  return { cards: result.data };
+}
