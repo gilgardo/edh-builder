@@ -19,6 +19,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 
 import { useDeck, useDeleteDeck } from '@/hooks/use-deck';
+import { useToggleDeckLike } from '@/hooks/use-deck-like';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +54,7 @@ export default function DeckViewPage({ params }: PageProps) {
   const { data: session } = useSession();
   const { data, isLoading, error } = useDeck(deckId);
   const deleteDeck = useDeleteDeck();
+  const { toggle: toggleLike, isPending: isLikePending } = useToggleDeckLike();
   const { toast } = useToast();
 
   // Memoize computed values - must be called before any early returns (rules of hooks)
@@ -83,6 +85,18 @@ export default function DeckViewPage({ params }: PageProps) {
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(window.location.href);
     toast('Link copied to clipboard', 'success');
+  };
+
+  const handleToggleLike = async () => {
+    if (!session?.user) {
+      toast('Sign in to like decks', 'error');
+      return;
+    }
+    try {
+      await toggleLike(deckId, isLiked);
+    } catch {
+      toast('Failed to update like', 'error');
+    }
   };
 
   if (isLoading) {
@@ -233,7 +247,12 @@ export default function DeckViewPage({ params }: PageProps) {
                     <Share2 className="mr-2 h-4 w-4" />
                     Share
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleToggleLike}
+                    disabled={isLikePending}
+                  >
                     <Heart className={cn('h-4 w-4', isLiked && 'fill-red-500 text-red-500')} />
                     <span className="ml-2">{deck.favorites.length}</span>
                   </Button>

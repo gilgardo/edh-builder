@@ -33,3 +33,4 @@ export {
   useSendMessageToConversation,
   useMarkConversationRead,
 } from './use-messages';
+export { useLikeDeck, useUnlikeDeck, useToggleDeckLike } from './use-deck-like';

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pnpm lint:*)",
       "Bash(docker exec:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker logs:*)"
     ]
   },
   "enabledMcpjsonServers": [

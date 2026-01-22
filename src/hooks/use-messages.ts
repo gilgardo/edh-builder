@@ -9,10 +9,17 @@ interface ConversationsResponse {
   total: number;
 }
 
+interface ConversationInfo {
+  id: string;
+  user1: { id: string; name: string | null; username: string | null; image: string | null };
+  user2: { id: string; name: string | null; username: string | null; image: string | null };
+}
+
 interface MessagesResponse {
   messages: MessageWithSender[];
   total: number;
   hasMore: boolean;
+  conversation: ConversationInfo;
 }
 
 async function fetchConversations(): Promise<ConversationsResponse> {
