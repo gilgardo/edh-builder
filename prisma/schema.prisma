@@ -36,6 +36,16 @@ model User {
   decks     Deck[]
   favorites FavoriteDeck[]
 
+  // Social relations
+  followers             Follow[]           @relation("Following") // Users who follow this user
+  following             Follow[]           @relation("Followers") // Users this user follows
+  reviews               DeckReview[]
+  collaborations        DeckCollaborator[]
+  conversationsAsUser1  Conversation[]     @relation("ConversationsAsUser1")
+  conversationsAsUser2  Conversation[]     @relation("ConversationsAsUser2")
+  messages              Message[]
+  notifications         Notification[]
+
   @@map("users")
 }
 
@@ -176,9 +186,11 @@ model Deck {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  cards     DeckCard[]
-  favorites FavoriteDeck[]
-  tags      DeckTag[]
+  cards         DeckCard[]
+  favorites     FavoriteDeck[]
+  tags          DeckTag[]
+  reviews       DeckReview[]
+  collaborators DeckCollaborator[]
 
   @@index([userId])
   @@index([isPublic])
@@ -270,4 +282,135 @@ enum CardCategory {
   COMMANDER  // Commander zone
   SIDEBOARD  // Sideboard/Maybeboard
   CONSIDERING // Cards being considered
+}
+
+enum CollaboratorRole {
+  VIEWER // Can view private deck
+  EDITOR // Can add/remove cards
+  ADMIN  // Can manage collaborators
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum NotificationType {
+  DECK_LIKE            // Someone liked your deck
+  DECK_REVIEW          // Someone reviewed your deck
+  COLLABORATION_INVITE // Invited to collaborate on a deck
+  COLLABORATION_ACCEPTED // Someone accepted your invite
+  NEW_FOLLOWER         // Someone followed you
+  NEW_MESSAGE          // New direct message
+}
+
+// ============================================
+// Social Features Models
+// ============================================
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model DeckReview {
+  id        String   @id @default(cuid())
+  deckId    String   @map("deck_id")
+  userId    String   @map("user_id")
+  rating    Int      // 1-5 stars
+  title     String?
+  content   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, userId]) // One review per user per deck
+  @@index([deckId])
+  @@index([userId])
+  @@map("deck_reviews")
+}
+
+model DeckCollaborator {
+  id        String           @id @default(cuid())
+  deckId    String           @map("deck_id")
+  userId    String           @map("user_id")
+  role      CollaboratorRole @default(VIEWER)
+  status    InviteStatus     @default(PENDING)
+  invitedAt DateTime         @default(now()) @map("invited_at")
+  joinedAt  DateTime?        @map("joined_at")
+
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, userId])
+  @@index([deckId])
+  @@index([userId])
+  @@index([status])
+  @@map("deck_collaborators")
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  participant1  String   @map("participant_1")
+  participant2  String   @map("participant_2")
+  lastMessageAt DateTime @default(now()) @map("last_message_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user1    User      @relation("ConversationsAsUser1", fields: [participant1], references: [id], onDelete: Cascade)
+  user2    User      @relation("ConversationsAsUser2", fields: [participant2], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([participant1, participant2])
+  @@index([participant1])
+  @@index([participant2])
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String    @map("conversation_id")
+  senderId       String    @map("sender_id")
+  content        String    @db.Text
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String?
+  data      Json?            // Flexible payload for links, references
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

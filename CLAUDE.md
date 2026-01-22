@@ -234,3 +234,121 @@ Add to your shell config for convenience:
 alias edh="docker exec edh-builder-app"
 # Usage: edh pnpm typecheck
 ```
+
+## Makefile Commands (Alternative)
+
+```bash
+make up / make down       # Start/stop containers
+make logs-app             # View app logs
+make shell                # Shell into app container
+make lint / make typecheck / make format  # Code quality
+make db-migrate / make db-push / make db-generate  # Database
+```
+
+## Card Search Pipeline
+
+Card search is centralized in `src/hooks/use-card-search.ts`. Do NOT:
+- Manage card-search state with `useState` in pages
+- Call `useQuery` directly for card search
+- Reimplement search logic per page
+
+Always use a single `useCardSearch()` instance per screen.
+
+## Critical: Docker Command Execution
+
+**⚠️ ALWAYS run commands inside the Docker container:**
+```bash
+docker exec edh-builder-app pnpm typecheck
+docker exec edh-builder-app pnpm lint
+docker exec edh-builder-app pnpm build
+```
+
+There is NO local `node_modules` - all dependencies exist only inside the container.
+
+---
+
+## Work in Progress: Social Features & Notifications
+
+### Features to Implement
+
+1. **Deck Likes** - Already exists via `FavoriteDeck` model
+2. **Deck Reviews** - Star ratings + text reviews on decks
+3. **Collaboration Invites** - Invite users to view/edit decks
+4. **Direct Messaging** - Private messages between users
+5. **Notification System** - Unified notifications with type-specific UI
+6. **Author Profile Page** - User public profile with decks, stats, follow
+
+### New Database Models
+
+| Model | Purpose |
+|-------|---------|
+| `Follow` | User follow relationships |
+| `DeckReview` | Deck ratings (1-5) + review text |
+| `DeckCollaborator` | Collaboration invites (VIEWER/EDITOR/ADMIN roles) |
+| `Conversation` | Message threads between two users |
+| `Message` | Individual messages in conversations |
+| `Notification` | Unified notification storage |
+
+### Notification Types
+
+| Type | Trigger |
+|------|---------|
+| `DECK_LIKE` | Someone liked your deck |
+| `DECK_REVIEW` | Someone reviewed your deck |
+| `COLLABORATION_INVITE` | Invited to collaborate |
+| `COLLABORATION_ACCEPTED` | Invite accepted |
+| `NEW_FOLLOWER` | Someone followed you |
+| `NEW_MESSAGE` | New direct message |
+
+### New API Routes
+
+```
+# Users & Social
+GET/PUT  /api/users/[userId]
+POST/DEL /api/users/[userId]/follow
+
+# Reviews
+GET/POST /api/decks/[deckId]/reviews
+
+# Collaboration
+GET/POST /api/decks/[deckId]/collaborators
+
+# Messaging
+GET/POST /api/messages
+GET      /api/messages/[conversationId]
+
+# Notifications
+GET      /api/notifications
+PUT      /api/notifications/read
+```
+
+### New Components
+
+```
+src/components/
+├── notifications/    # Bell, dropdown, notification items by type
+├── profile/          # User profile card, stats, follow button
+├── reviews/          # Review form, rating stars, review list
+├── collaboration/    # Invite dialog, collaborator list
+└── messaging/        # Inbox, conversation view, message input
+```
+
+### New Pages
+
+```
+/users/[userId]              # User profile page
+/notifications               # Full notifications list
+/messages                    # Message inbox
+/messages/[conversationId]   # Conversation view
+```
+
+### Implementation Order
+
+1. Database migrations (all new models)
+2. Notification service (core notification creation)
+3. Follow system (simplest social feature)
+4. Reviews system
+5. User profile page
+6. Collaboration system
+7. Messaging system
+8. Notification UI (bell, dropdown, full page)
