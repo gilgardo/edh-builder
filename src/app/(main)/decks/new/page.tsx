@@ -12,6 +12,7 @@ import { useCardSearch } from '@/hooks/use-card-search';
 import { useAddCardToDeck } from '@/hooks/use-deck-cards';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -40,6 +41,7 @@ type CreateDeckForm = z.infer<typeof createDeckSchema>;
 
 export default function CreateDeckPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [step, setStep] = useState<'commander' | 'details'>('commander');
   const [selectedCommander, setSelectedCommander] = useState<ScryfallCard | null>(null);
 
@@ -73,7 +75,6 @@ export default function CreateDeckPage() {
     if (!selectedCommander) return;
 
     try {
-      // 1. Create the empty deck first
       const result = await createDeck.mutateAsync({
         name: data.name,
         description: data.description || undefined,
@@ -81,7 +82,6 @@ export default function CreateDeckPage() {
         isPublic: data.isPublic,
       });
 
-      // 2. Add the commander to the deck (this syncs the card to DB and sets commanderId)
       await addCardToDeck.mutateAsync({
         deckId: result.deck.id,
         scryfallCard: selectedCommander,
@@ -89,8 +89,8 @@ export default function CreateDeckPage() {
       });
 
       router.push(`/decks/${result.deck.id}/edit`);
-    } catch (error) {
-      console.error('Failed to create deck:', error);
+    } catch {
+      toast('Failed to create deck. Please try again.', 'error');
     }
   };
 

@@ -5,5 +5,14 @@
       "Bash(docker exec:*)",
       "Bash(curl:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "nextjs",
+    "prisma",
+    "tailwind"
+  ],
+  "disabledMcpjsonServers": [
+    "docker",
+    "github"
+  ]
 }

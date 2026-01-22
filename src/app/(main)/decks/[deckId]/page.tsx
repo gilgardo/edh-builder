@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,6 @@ import { useDeck, useDeleteDeck } from '@/hooks/use-deck';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
@@ -33,86 +32,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/toast';
 import { Container } from '@/components/layout/container';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
+import { DeckViewSkeleton } from '@/components/decks/deck-view-skeleton';
+import { groupCardsByType, calculateManaCurve, calculateTotalCards } from '@/lib/deck-utils';
 import { cn } from '@/lib/utils';
+import type { DeckCard, Card as PrismaCard } from '@prisma/client';
 
 interface PageProps {
   params: Promise<{ deckId: string }>;
 }
 
-// Group cards by category and type
-function groupCardsByType(
-  cards: Array<{
-    category: string;
-    quantity: number;
-    card: {
-      typeLine: string;
-      name: string;
-      manaCost: string | null;
-      cmc: number;
-      imageUris: unknown;
-    };
-  }>
-) {
-  const groups: Record<string, typeof cards> = {};
-
-  for (const deckCard of cards) {
-    const typeLine = deckCard.card.typeLine.toLowerCase();
-    let type = 'Other';
-
-    if (typeLine.includes('creature')) type = 'Creatures';
-    else if (typeLine.includes('instant')) type = 'Instants';
-    else if (typeLine.includes('sorcery')) type = 'Sorceries';
-    else if (typeLine.includes('artifact')) type = 'Artifacts';
-    else if (typeLine.includes('enchantment')) type = 'Enchantments';
-    else if (typeLine.includes('planeswalker')) type = 'Planeswalkers';
-    else if (typeLine.includes('land')) type = 'Lands';
-
-    if (!groups[type]) groups[type] = [];
-    groups[type]!.push(deckCard);
-  }
-
-  // Sort by type priority
-  const typeOrder = [
-    'Creatures',
-    'Instants',
-    'Sorceries',
-    'Artifacts',
-    'Enchantments',
-    'Planeswalkers',
-    'Lands',
-    'Other',
-  ];
-  const sortedGroups: typeof groups = {};
-  for (const type of typeOrder) {
-    const group = groups[type];
-    if (group && group.length > 0) {
-      sortedGroups[type] = group.sort((a, b) => a.card.name.localeCompare(b.card.name));
-    }
-  }
-
-  return sortedGroups;
-}
-
-// Calculate mana curve data
-function calculateManaCurve(
-  cards: Array<{ quantity: number; card: { cmc: number; typeLine: string } }>
-) {
-  const curve: Record<string, number> = {};
-
-  for (const deckCard of cards) {
-    // Skip lands for mana curve
-    if (deckCard.card.typeLine.toLowerCase().includes('land')) continue;
-
-    const cmc = Math.min(Math.floor(deckCard.card.cmc), 7);
-    const key = cmc === 7 ? '7+' : String(cmc);
-    curve[key] = (curve[key] || 0) + deckCard.quantity;
-  }
-
-  return curve;
-}
+type DeckCardWithCard = DeckCard & { card: PrismaCard };
 
 export default function DeckViewPage({ params }: PageProps) {
   const { deckId } = use(params);
@@ -120,18 +53,36 @@ export default function DeckViewPage({ params }: PageProps) {
   const { data: session } = useSession();
   const { data, isLoading, error } = useDeck(deckId);
   const deleteDeck = useDeleteDeck();
+  const { toast } = useToast();
+
+  // Memoize computed values - must be called before any early returns (rules of hooks)
+  const deck = data?.deck;
+  const isLiked = data?.isLiked ?? false;
+  const cardGroups = useMemo<Record<string, DeckCardWithCard[]>>(() => {
+    if (!deck) return {};
+    return groupCardsByType(deck.cards, { sortBy: 'name' });
+  }, [deck]);
+  const manaCurve = useMemo(
+    () => (deck ? calculateManaCurve(deck.cards) : {}),
+    [deck]
+  );
+  const totalCards = useMemo(
+    () => (deck ? calculateTotalCards(deck.cards) : 0),
+    [deck]
+  );
 
   const handleDelete = async () => {
     try {
       await deleteDeck.mutateAsync(deckId);
       router.push('/decks');
-    } catch (error) {
-      console.error('Failed to delete deck:', error);
+    } catch {
+      toast('Failed to delete deck', 'error');
     }
   };
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(window.location.href);
+    toast('Link copied to clipboard', 'success');
   };
 
   if (isLoading) {
@@ -144,7 +95,7 @@ export default function DeckViewPage({ params }: PageProps) {
     );
   }
 
-  if (error || !data) {
+  if (error || !deck) {
     return (
       <div className="py-8">
         <Container className="max-w-4xl">
@@ -165,11 +116,7 @@ export default function DeckViewPage({ params }: PageProps) {
     );
   }
 
-  const { deck, isLiked } = data;
   const isOwner = session?.user?.id === deck.userId;
-  const cardGroups = groupCardsByType(deck.cards);
-  const manaCurve = calculateManaCurve(deck.cards);
-  const totalCards = deck.cards.reduce((acc, c) => acc + c.quantity, 0);
   const updatedAt = typeof deck.updatedAt === 'string' ? new Date(deck.updatedAt) : deck.updatedAt;
 
   // Get commander image
@@ -500,34 +447,6 @@ export default function DeckViewPage({ params }: PageProps) {
           </div>
         </div>
       </Container>
-    </div>
-  );
-}
-
-function DeckViewSkeleton() {
-  return (
-    <div className="space-y-8">
-      {/* Hero Skeleton */}
-      <Skeleton className="h-64 rounded-xl" />
-
-      {/* Stats Skeleton */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
-        </div>
-        <div className="space-y-6">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-32" />
-        </div>
-      </div>
     </div>
   );
 }

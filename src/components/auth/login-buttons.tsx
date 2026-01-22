@@ -38,8 +38,8 @@ export function LoginButtons({ callbackUrl = '/' }: LoginButtonsProps) {
     setIsLoading(provider);
     try {
       await signIn(provider, { callbackUrl });
-    } catch (error) {
-      console.error('Sign in error:', error);
+    } catch {
+      // NextAuth handles sign-in errors via its error page
     } finally {
       setIsLoading(null);
     }

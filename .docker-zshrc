@@ -1,0 +1,53 @@
+# Basic zsh configuration for Docker container
+# Feel free to customize this file and push to your dotfiles repo
+
+# Enable powerline10k theme
+if [ -f "$HOME/.local/share/zsh-in-docker/zsh-in-docker.sh" ]; then
+  source "$HOME/.local/share/zsh-in-docker/zsh-in-docker.sh"
+fi
+
+# Basic aliases
+alias ll='ls -la'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# Git aliases
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git log --oneline -10'
+
+# Enable fzf key bindings
+if [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
+  source /usr/share/doc/fzf/examples/key-bindings.zsh
+fi
+
+# Enable fzf completion
+if [ -f /usr/share/doc/fzf/examples/completion.zsh ]; then
+  source /usr/share/doc/fzf/examples/completion.zsh
+fi
+
+# History settings
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_VERIFY
+
+# Export environment variables
+export PROMPT_COMMAND='history -a'
+export HISTFILE=/commandhistory/.bash_history
+export EDITOR=nvim
+export VISUAL=nvim
+
+# Node.js development environment
+export PNPM_HOME=/home/node/.local/share/pnpm
+export PATH=$PNPM_HOME:$PATH:/usr/local/share/npm-global/bin
+
+# Welcome message
+echo "🎮 Welcome to EDH Builder development container!"
+echo "📝 Use 'pnpm dev' to start the development server"
+echo "🔧 Use 'pnpm typecheck' and 'pnpm lint' to check code quality"

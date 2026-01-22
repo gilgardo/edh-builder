@@ -2,3 +2,4 @@ export { useCardSearch } from './use-card-search';
 export { useDeck, useUpdateDeck, useDeleteDeck } from './use-deck';
 export { useDecks, useCreateDeck } from './use-decks';
 export { useAddCardToDeck, useRemoveCardFromDeck } from './use-deck-cards';
+export { useDeckSearch } from './use-deck-search';

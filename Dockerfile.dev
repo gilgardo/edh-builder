@@ -1,11 +1,144 @@
 # Development Dockerfile for EDH Builder
-# Supports hot reload with volume mounting
+# Based on custom dev image with GitHub config imports and crush installation
 
-FROM next-react-dev:latest
+FROM node:20
 
-# Base image provides Node, pnpm, zsh, tmux and common dev tools
+ARG TZ
+ENV TZ="$TZ"
 
-# Set working directory
+ARG CLAUDE_CODE_VERSION=latest
+
+# Install basic development tools and iptables/ipset
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  less \
+  git \
+  procps \
+  sudo \
+  fzf \
+  zsh \
+  man-db \
+  unzip \
+  gnupg2 \
+  gh \
+  iptables \
+  ipset \
+  iproute2 \
+  dnsutils \
+  aggregate \
+  jq \
+  nano \
+  vim \
+  curl \
+  wget \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Ensure default node user has access to /usr/local/share
+RUN mkdir -p /usr/local/share/npm-global && \
+  chown -R node:node /usr/local/share
+
+ARG USERNAME=node
+
+# Persist bash history.
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  && mkdir /commandhistory \
+  && touch /commandhistory/.bash_history \
+  && chown -R $USERNAME /commandhistory
+
+# Set `DEVCONTAINER` environment variable to help with orientation
+ENV DEVCONTAINER=true
+
+# Create workspace and config directories and set permissions
+RUN mkdir -p /workspace /home/node/.claude && \
+  chown -R node:node /workspace /home/node/.claude
+
+WORKDIR /workspace
+
+ARG GIT_DELTA_VERSION=0.18.2
+RUN ARCH=$(dpkg --print-architecture) && \
+  wget "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
+  sudo dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
+  rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
+
+# Set up non-root user
+USER node
+
+# Install global packages
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH=$PATH:/usr/local/share/npm-global/bin
+
+# Set the default shell to zsh rather than sh
+ENV SHELL=/bin/zsh
+
+# Set the default editor and visual
+ENV EDITOR=nvim
+ENV VISUAL=nvim
+
+# Default powerline10k theme
+ARG ZSH_IN_DOCKER_VERSION=1.2.0
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
+  -p git \
+  -p fzf \
+  -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
+  -a "source /usr/share/doc/fzf/examples/completion.zsh" \
+  -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  -x
+
+# Install Claude
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+# Note: opencode is not available on npm, skipping for now
+# Can be installed manually in the container if needed
+
+# Environment for pnpm via corepack (for Next/React dev)
+ENV PNPM_HOME=/home/node/.local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+# Enable corepack and install latest pnpm
+# Run as root so corepack can create the pnpm symlink in /usr/local/bin,
+# then switch back to the non-root user provided by the base image.
+USER root
+RUN corepack enable \
+  && corepack prepare pnpm@latest --activate
+USER node
+
+# Install Neovim appimage for LazyVim compatibility
+USER root
+RUN wget https://github.com/neovim/neovim/releases/download/v0.10.0/nvim.appimage \
+    && chmod +x nvim.appimage \
+    && mv nvim.appimage /usr/local/bin/nvim
+USER node
+
+# Oh My Zsh is already installed from zsh-in-docker step above
+
+# Clone zsh config from GitHub (using HTTPS)
+RUN git clone https://github.com/gilgardo/zsh-config.git /tmp/zsh-config 2>/dev/null || \
+    echo "zsh-config repo not found, using default zsh config" && \
+    if [ -d "/tmp/zsh-config" ] && [ -f "/tmp/zsh-config/.zshrc" ]; then \
+      cp /tmp/zsh-config/.zshrc /home/node/.zshrc && \
+      rm -rf /tmp/zsh-config; \
+    fi
+
+# Clone nvim config for LazyVim
+RUN git clone https://github.com/gilgardo/nvim-config.git /tmp/nvim-config 2>/dev/null || \
+    echo "nvim-config repo not found or private, using default nvim config" && \
+    if [ -d "/tmp/nvim-config" ]; then \
+      mkdir -p /home/node/.config/nvim && \
+      cp -r /tmp/nvim-config/* /home/node/.config/nvim/ && \
+      rm -rf /tmp/nvim-config; \
+    fi
+
+# Create directories for settings sync
+RUN mkdir -p /home/node/.claude /home/node/.config/opencode
+
+# Copy and set up firewall script
+COPY init-firewall.sh /usr/local/bin/
+USER root
+RUN chmod +x /usr/local/bin/init-firewall.sh && \
+  echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+  chmod 0440 /etc/sudoers.d/node-firewall
+USER node
+
+# Set working directory for the app
 WORKDIR /app
 
 # Copy package files for dependency installation

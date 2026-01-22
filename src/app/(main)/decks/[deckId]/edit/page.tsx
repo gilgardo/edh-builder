@@ -9,18 +9,8 @@ import { useDeck, useUpdateDeck } from '@/hooks/use-deck';
 import { useAddCardToDeck, useRemoveCardFromDeck, useUpdateDeckCard } from '@/hooks/use-deck-cards';
 import { useCardSearch } from '@/hooks/use-card-search';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useToast } from '@/components/ui/toast';
 import {
   Sheet,
   SheetContent,
@@ -37,8 +27,11 @@ import { CardSearchInput } from '@/components/cards/card-search-input';
 import { PrintingsModal } from '@/components/cards/printings-modal';
 import { DeckCardList } from '@/components/decks/deck-card-list';
 import { CardPreviewPanel } from '@/components/decks/card-preview-panel';
+import { DeckSettingsForm } from '@/components/decks/deck-settings-form';
+import { DeckEditSkeleton } from '@/components/decks/deck-edit-skeleton';
+import { groupCardsByType, getConsideringCards, calculateTotalCards } from '@/lib/deck-utils';
 import type { ScryfallCard } from '@/types/scryfall.types';
-import type { DeckCard, DisplayCard, PreviewableCard } from '@/types/cards';
+import type { DisplayCard, PreviewableCard } from '@/types/cards';
 import type { CardCategory } from '@/schemas/deck.schema';
 import { cn } from '@/lib/utils';
 
@@ -46,61 +39,10 @@ interface PageProps {
   params: Promise<{ deckId: string }>;
 }
 
-// Group cards by type (excludes CONSIDERING cards)
-function groupCardsByType(cards: DeckCard[] | undefined): Record<string, DeckCard[]> {
-  const groups: Record<string, DeckCard[]> = {};
-  if (!cards) return {};
-
-  for (const deckCard of cards) {
-    // Skip considering cards - they're shown in a separate section
-    if (deckCard.category === 'CONSIDERING') continue;
-
-    const typeLine = deckCard.card.typeLine.toLowerCase();
-    let type = 'Other';
-
-    if (typeLine.includes('creature')) type = 'Creatures';
-    else if (typeLine.includes('instant')) type = 'Instants';
-    else if (typeLine.includes('sorcery')) type = 'Sorceries';
-    else if (typeLine.includes('artifact')) type = 'Artifacts';
-    else if (typeLine.includes('enchantment')) type = 'Enchantments';
-    else if (typeLine.includes('planeswalker')) type = 'Planeswalkers';
-    else if (typeLine.includes('land')) type = 'Lands';
-
-    (groups[type] ??= []).push(deckCard);
-  }
-
-  const typeOrder = [
-    'Creatures',
-    'Instants',
-    'Sorceries',
-    'Artifacts',
-    'Enchantments',
-    'Planeswalkers',
-    'Lands',
-    'Other',
-  ];
-  const sortedGroups: Record<string, DeckCard[]> = {};
-  for (const type of typeOrder) {
-    const group = groups[type];
-    if (group && group.length > 0) {
-      sortedGroups[type] = group.sort((a, b) => a.card.cmc - b.card.cmc);
-    }
-  }
-
-  return sortedGroups;
-}
-
-// Get considering cards
-function getConsideringCards(cards: DeckCard[] | undefined): DeckCard[] {
-  if (!cards) return [];
-  return cards
-    .filter((card) => card.category === 'CONSIDERING')
-    .sort((a, b) => a.card.name.localeCompare(b.card.name));
-}
-
 export default function DeckEditPage({ params }: PageProps) {
   const { deckId } = use(params);
   const { data: session } = useSession();
+  const { toast } = useToast();
 
   // UI-only state
   const [activeTab, setActiveTab] = useState<'search' | 'decklist'>('decklist');
@@ -116,15 +58,18 @@ export default function DeckEditPage({ params }: PageProps) {
     () => deck?.cards.filter((card) => card.cardId !== deck.commanderId),
     [deck]
   );
-  const cardGroups = useMemo(() => groupCardsByType(nonCommanderCards), [nonCommanderCards]);
+  const cardGroups = useMemo(
+    () => groupCardsByType(nonCommanderCards, { excludeCategory: 'CONSIDERING' }),
+    [nonCommanderCards]
+  );
   const consideringCards = useMemo(
     () => getConsideringCards(nonCommanderCards),
     [nonCommanderCards]
   );
-  // Total cards excludes considering cards
-  const totalCards = deck?.cards
-    .filter((c) => c.category !== 'CONSIDERING')
-    .reduce((acc: number, c: { quantity: number }) => acc + c.quantity, 0);
+  const totalCards = useMemo(
+    () => calculateTotalCards(deck?.cards, 'CONSIDERING'),
+    [deck?.cards]
+  );
 
   const updateDeck = useUpdateDeck();
   const addCard = useAddCardToDeck();
@@ -144,22 +89,22 @@ export default function DeckEditPage({ params }: PageProps) {
           scryfallCard: card,
           category: 'MAIN',
         });
-      } catch (error) {
-        console.error('Failed to add card:', error);
+      } catch {
+        toast('Failed to add card to deck', 'error');
       }
     },
-    [addCard, deckId]
+    [addCard, deckId, toast]
   );
 
   const handleRemoveCard = useCallback(
     async (cardId: string) => {
       try {
         await removeCard.mutateAsync({ deckId, cardId });
-      } catch (error) {
-        console.error('Failed to remove card:', error);
+      } catch {
+        toast('Failed to remove card from deck', 'error');
       }
     },
-    [removeCard, deckId]
+    [removeCard, deckId, toast]
   );
 
   const handleCardHover = useCallback((card: PreviewableCard | null) => {
@@ -174,48 +119,44 @@ export default function DeckEditPage({ params }: PageProps) {
   const handleSelectPrinting = useCallback(
     async (scryfallCard: ScryfallCard) => {
       if (!selectedCardForPrinting || !deck) return;
-      // Remove the old card and add the new printing
       try {
-        // Find the current deck card to get its category and quantity
         const currentDeckCard = deck.cards.find((dc) => dc.card.id === selectedCardForPrinting.id);
         if (!currentDeckCard) return;
 
-        // Remove old card
         await removeCard.mutateAsync({ deckId, cardId: selectedCardForPrinting.id });
-        // Add new printing with same quantity and category
         await addCard.mutateAsync({
           deckId,
           scryfallCard,
           quantity: currentDeckCard.quantity,
           category: currentDeckCard.category as CardCategory,
         });
-      } catch (error) {
-        console.error('Failed to change printing:', error);
+      } catch {
+        toast('Failed to change card printing', 'error');
       }
     },
-    [deck, selectedCardForPrinting, deckId, removeCard, addCard]
+    [deck, selectedCardForPrinting, deckId, removeCard, addCard, toast]
   );
 
   const handleChangeQuantity = useCallback(
     async (card: DisplayCard, quantity: number) => {
       try {
         await updateCard.mutateAsync({ deckId, cardId: card.id, quantity });
-      } catch (error) {
-        console.error('Failed to change quantity:', error);
+      } catch {
+        toast('Failed to change card quantity', 'error');
       }
     },
-    [updateCard, deckId]
+    [updateCard, deckId, toast]
   );
 
   const handleMoveToCategory = useCallback(
     async (card: DisplayCard, category: CardCategory) => {
       try {
         await updateCard.mutateAsync({ deckId, cardId: card.id, category });
-      } catch (error) {
-        console.error('Failed to move card:', error);
+      } catch {
+        toast('Failed to move card', 'error');
       }
     },
-    [updateCard, deckId]
+    [updateCard, deckId, toast]
   );
 
   if (isLoading) {
@@ -482,106 +423,6 @@ export default function DeckEditPage({ params }: PageProps) {
         currentScryfallId={selectedCardForPrinting?.scryfallId ?? ''}
         onSelectPrinting={handleSelectPrinting}
       />
-    </div>
-  );
-}
-
-interface DeckSettingsFormProps {
-  deck: {
-    id: string;
-    name: string;
-    description: string | null;
-    format: string;
-    isPublic: boolean;
-  };
-  onUpdate: (params: {
-    deckId: string;
-    data: { name?: string; description?: string; isPublic?: boolean };
-  }) => void;
-  isUpdating: boolean;
-}
-
-function DeckSettingsForm({ deck, onUpdate, isUpdating }: DeckSettingsFormProps) {
-  const [name, setName] = useState(deck.name);
-  const [description, setDescription] = useState(deck.description ?? '');
-  const [isPublic, setIsPublic] = useState(deck.isPublic);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onUpdate({
-      deckId: deck.id,
-      data: { name, description, isPublic },
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-      <div>
-        <Label htmlFor="name">Deck Name</Label>
-        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
-      </div>
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="mt-1"
-          rows={4}
-        />
-      </div>
-      <div>
-        <Label htmlFor="visibility">Visibility</Label>
-        <Select
-          value={isPublic ? 'public' : 'private'}
-          onValueChange={(v) => setIsPublic(v === 'public')}
-        >
-          <SelectTrigger className="mt-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="private">Private</SelectItem>
-            <SelectItem value="public">Public</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button type="submit" className="w-full" disabled={isUpdating}>
-        {isUpdating ? 'Saving...' : 'Save Changes'}
-      </Button>
-    </form>
-  );
-}
-
-function DeckEditSkeleton() {
-  return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col md:flex-row">
-      {/* Mobile skeleton */}
-      <div className="space-y-4 p-4 md:hidden">
-        <Skeleton className="h-10" />
-        <Skeleton className="h-10" />
-        <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-488/680" />
-          ))}
-        </div>
-      </div>
-      {/* Desktop skeleton */}
-      <div className="hidden md:flex md:flex-1">
-        <div className="w-64 border-r p-4 lg:w-72">
-          <Skeleton className="aspect-488/680 rounded-lg" />
-        </div>
-        <div className="flex-1 p-4">
-          <Skeleton className="mb-4 h-10" />
-          <div className="columns-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="mb-4 break-inside-avoid">
-                <Skeleton className="mb-2 h-5 w-20" />
-                <Skeleton className="h-32" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

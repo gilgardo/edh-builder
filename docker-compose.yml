@@ -14,6 +14,9 @@ services:
       - /app/node_modules
       # Persist Prisma client between rebuilds
       - prisma-client:/app/node_modules/.prisma
+      # Sync Claude and opencode settings from host
+      - ~/.claude:/home/node/.claude
+      - ~/.config/opencode:/home/node/.config/opencode
     environment:
       - NODE_ENV=development
       - TURBOPACK=0

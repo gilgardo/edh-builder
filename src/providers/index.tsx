@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react';
 import { QueryProvider } from './query-provider';
 import { AuthProvider } from './auth-provider';
+import { ToastProvider } from '@/components/ui/toast';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -11,7 +12,9 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <AuthProvider>
-      <QueryProvider>{children}</QueryProvider>
+      <QueryProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </QueryProvider>
     </AuthProvider>
   );
 }

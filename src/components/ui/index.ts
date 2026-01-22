@@ -61,3 +61,4 @@ export {
   SelectScrollDownButton,
 } from './select';
 export { Textarea } from './textarea';
+export { ToastProvider, useToast } from './toast';

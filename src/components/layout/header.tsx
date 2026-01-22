@@ -1,209 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import { Menu, Plus, Search, Layers } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Menu, Plus, Layers } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { UserMenu } from '@/components/auth/user-menu';
-import { useCardSearch } from '@/hooks/use-card-search';
-import { ManaCost } from '@/components/cards/mana-cost';
-import { CardSearchInput, type DeckSearchResult } from '@/components/cards/card-search-input';
-import { getCardImageUrl, getCardManaCost } from '@/services/scryfall';
-import type { ScryfallCard } from '@/types/scryfall.types';
+import { HeaderCardSearch, MobileSearch } from '@/components/layout/header-search';
 
 const navigation = [
   { name: 'Browse Decks', href: '/decks' as Route, icon: Layers },
   { name: 'Create Deck', href: '/decks/new' as Route, icon: Plus },
 ];
-
-// Hook to search decks
-function useDeckSearch(query: string) {
-  return useQuery({
-    queryKey: ['decks-search', query],
-    queryFn: async () => {
-      const res = await fetch(`/api/decks?search=${encodeURIComponent(query)}&limit=4`);
-      if (!res.ok) throw new Error('Failed to search decks');
-      const data = await res.json();
-      return data.decks as DeckSearchResult[];
-    },
-    enabled: query.length >= 3,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-// Card preview dialog
-function CardPreviewDialog({
-  card,
-  open,
-  onClose,
-}: {
-  card: ScryfallCard | null;
-  open: boolean;
-  onClose: () => void;
-}) {
-  if (!card) return null;
-
-  const imageUrl = getCardImageUrl(card, 'normal');
-  const manaCost = getCardManaCost(card);
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md p-4">
-        <DialogTitle className="sr-only">{card.name}</DialogTitle>
-        <div className="flex flex-col items-center gap-4">
-          <Image
-            src={imageUrl}
-            alt={card.name}
-            width={300}
-            height={418}
-            className="rounded-lg shadow-lg"
-            priority
-          />
-          <div className="w-full space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{card.name}</h3>
-              {manaCost && <ManaCost cost={manaCost} size="md" />}
-            </div>
-            <p className="text-sm text-muted-foreground">{card.type_line}</p>
-            {card.oracle_text && (
-              <p className="text-sm whitespace-pre-line">{card.oracle_text}</p>
-            )}
-            {(card.power || card.toughness) && (
-              <p className="text-sm font-medium">
-                {card.power}/{card.toughness}
-              </p>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function HeaderCardSearch() {
-  const { cards, isLoading, params, setQuery, reset } = useCardSearch();
-  const [previewCard, setPreviewCard] = useState<ScryfallCard | null>(null);
-
-  const queryStr = params.query ?? '';
-  const { data: decks, isLoading: decksLoading } = useDeckSearch(queryStr);
-
-  // Keyboard shortcut (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        const input = document.getElementById('header-search') as HTMLInputElement;
-        input?.focus();
-      }
-      if (e.key === 'Escape') {
-        const input = document.getElementById('header-search') as HTMLInputElement;
-        input?.blur();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleClear = () => {
-    reset();
-  };
-
-  return (
-    <>
-      <div className="relative hidden md:block">
-        <div className="group relative flex items-center">
-          <CardSearchInput
-            value={queryStr}
-            onChange={setQuery}
-            onClear={handleClear}
-            onCardClick={setPreviewCard}
-            cards={cards as ScryfallCard[]}
-            isLoading={isLoading}
-            showDecks
-            decks={decks ?? []}
-            isDecksLoading={decksLoading}
-            maxResults={4}
-            maxDeckResults={4}
-            cardActionMode="navigate"
-            placeholder="Search cards & decks..."
-            inputId="header-search"
-            inputClassName="w-48 cursor-text rounded-full border-border bg-background transition-[width] duration-200 ease-out focus:w-72 group-hover:w-72"
-            dropdownClassName="w-80 right-0 left-auto"
-          />
-          <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground lg:inline-flex">
-            <span className="text-xs">⌘</span>K
-          </kbd>
-        </div>
-      </div>
-
-      <CardPreviewDialog
-        card={previewCard}
-        open={!!previewCard}
-        onClose={() => setPreviewCard(null)}
-      />
-    </>
-  );
-}
-
-// Mobile search component
-function MobileSearch() {
-  const [open, setOpen] = useState(false);
-  const { cards, isLoading, params, setQuery, reset } = useCardSearch();
-  const [previewCard, setPreviewCard] = useState<ScryfallCard | null>(null);
-
-  const queryStr = params.query ?? '';
-  const { data: decks, isLoading: decksLoading } = useDeckSearch(queryStr);
-
-  return (
-    <>
-      <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
-        <Search className="h-5 w-5" />
-      </Button>
-
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="top" className="h-[80vh]">
-          <SheetTitle className="sr-only">Search</SheetTitle>
-          <div className="flex flex-col h-full gap-4 pt-4">
-            <CardSearchInput
-              value={queryStr}
-              onChange={setQuery}
-              onClear={reset}
-              onCardClick={setPreviewCard}
-              cards={cards as ScryfallCard[]}
-              isLoading={isLoading}
-              showDecks
-              decks={decks ?? []}
-              isDecksLoading={decksLoading}
-              maxResults={8}
-              maxDeckResults={4}
-              cardActionMode="navigate"
-              placeholder="Search cards & decks..."
-            />
-
-            {queryStr.length > 0 && queryStr.length < 3 && (
-              <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                Type at least 3 characters to search
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <CardPreviewDialog
-        card={previewCard}
-        open={!!previewCard}
-        onClose={() => setPreviewCard(null)}
-      />
-    </>
-  );
-}
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -307,13 +118,15 @@ export function Header() {
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center gap-3">
                         {session.user.image ? (
-                          <img
+                          <Image
                             src={session.user.image}
                             alt={session.user.name ?? 'User'}
+                            width={40}
+                            height={40}
                             className="h-10 w-10 rounded-full"
                           />
                         ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full">
                             {session.user.name?.charAt(0) ?? 'U'}
                           </div>
                         )}

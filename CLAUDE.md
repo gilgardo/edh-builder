@@ -22,7 +22,7 @@ EDH Builder is a web application for building, sharing, and discovering Magic: T
 **IMPORTANT**: This project runs entirely in Docker containers. There is no local `node_modules` folder - all dependencies are installed inside the container.
 
 ### Container Names
-- `edh-builder-app` - Next.js application (port 3001)
+- `edh-builder-app` - Next.js application (port 3001) with development tools
 - `edh-builder-db` - PostgreSQL database (port 5432)
 - `edh-builder-prisma-studio` - Prisma Studio (port 5555, optional)
 
@@ -35,6 +35,19 @@ docker exec edh-builder-app pnpm typecheck
 docker exec edh-builder-app pnpm lint
 docker exec edh-builder-app pnpm build
 ```
+
+### Base Image Features
+
+The Dockerfile.dev now includes:
+- **Development tools**: zsh, fzf, git-delta, neovim, gh, iptables/ipset for firewall
+- **AI assistants**: Claude Code and crush CLI installed globally
+- **Terminal configuration**: Zsh with powerline10k theme, bash history persistence
+- **Firewall**: Custom iptables firewall script restricting outbound traffic
+- **GitHub config imports**: Placeholders for cloning terminal and nvim configs from GitHub
+- **pnpm**: Corepack enabled with latest pnpm
+- **Editor**: Neovim set as default editor (EDITOR/VISUAL=nvim)
+
+**Note**: Update the placeholder GitHub URLs in Dockerfile.dev with your actual config repositories.
 
 ## Project Structure
 
@@ -198,6 +211,9 @@ Available classes: `gradient-azorius`, `gradient-dimir`, `gradient-rakdos`, etc.
 ## Development Notes
 
 ### Docker Setup
+- Base image: Custom Node.js 20 with development tools (zsh, fzf, git-delta, neovim, firewall)
+- Includes crush CLI assistant and Claude Code for terminal AI assistance
+- Terminal and nvim configs imported from GitHub (placeholder URLs)
 - Source code is mounted as a volume for hot reload
 - `node_modules` lives only inside the container (not on host)
 - Prisma client is persisted in a named volume between rebuilds
