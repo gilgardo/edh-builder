@@ -3,7 +3,7 @@
 import { signOut } from 'next-auth/react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { User, LogOut, Layers, Settings } from 'lucide-react';
+import { User, LogOut, Layers, Settings, MessageSquare, Bell } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -63,6 +63,18 @@ export function UserMenu({ user }: UserMenuProps) {
             <Link href={"/decks?mine=true" as Route} className="flex cursor-pointer items-center">
               <Layers className="mr-2 h-4 w-4" />
               <span>My Decks</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={"/messages" as Route} className="flex cursor-pointer items-center">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              <span>Messages</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={"/notifications" as Route} className="flex cursor-pointer items-center">
+              <Bell className="mr-2 h-4 w-4" />
+              <span>Notifications</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>

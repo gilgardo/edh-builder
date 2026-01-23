@@ -6,7 +6,10 @@
       "Bash(curl:*)",
       "Bash(docker logs:*)",
       "Bash(docker ps:*)",
-      "mcp__docs__query-docs"
+      "mcp__docs__query-docs",
+      "mcp__filesystem__read_multiple_files",
+      "Bash(grep:*)",
+      "Bash(git diff:*)"
     ]
   },
   "enabledMcpjsonServers": [

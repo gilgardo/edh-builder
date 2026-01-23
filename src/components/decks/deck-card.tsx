@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Heart, Layers, Lock } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,15 +16,28 @@ interface DeckCardProps {
 }
 
 export function DeckCard({ deck, className }: DeckCardProps) {
+  const router = useRouter();
   const commanderImageUris = deck.commander?.imageUris;
   const commanderImage = commanderImageUris?.art_crop || commanderImageUris?.normal;
   const likesCount = deck.favorites?.length ?? 0;
 
+  const handleCardClick = () => {
+    router.push(`/decks/${deck.id}`);
+  };
+
   return (
-    <Link href={`/decks/${deck.id}`}>
-      <Card
+    <Card
+      onClick={handleCardClick}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
         className={cn(
-          'group hover:border-primary/50 overflow-hidden transition-all hover:shadow-lg',
+          'group hover:border-primary/50 overflow-hidden transition-all hover:shadow-lg cursor-pointer',
           className
         )}
       >
@@ -75,15 +91,19 @@ export function DeckCard({ deck, className }: DeckCardProps) {
         )}
 
         <CardFooter className="text-muted-foreground flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
+          <Link
+            href={`/users/${deck.user.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-2 hover:text-foreground transition-colors"
+          >
             <Avatar className="h-6 w-6">
               <AvatarImage src={deck.user.image ?? undefined} alt={deck.user.name ?? 'User'} />
               <AvatarFallback className="text-xs">
                 {deck.user.name?.charAt(0) ?? 'U'}
               </AvatarFallback>
             </Avatar>
-            <span className="truncate">{deck.user.name}</span>
-          </div>
+            <span className="truncate hover:underline">{deck.user.name}</span>
+          </Link>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Layers className="h-4 w-4" />
@@ -96,7 +116,6 @@ export function DeckCard({ deck, className }: DeckCardProps) {
           </div>
         </CardFooter>
       </Card>
-    </Link>
   );
 }
 

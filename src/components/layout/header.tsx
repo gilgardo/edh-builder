@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { UserMenu } from '@/components/auth/user-menu';
 import { HeaderCardSearch, MobileSearch } from '@/components/layout/header-search';
+import { NotificationBell } from '@/components/notifications';
 
 const navigation = [
   { name: 'Browse Decks', href: '/decks' as Route, icon: Layers },
@@ -56,6 +57,9 @@ export function Header() {
           {/* Expanding card search */}
           <HeaderCardSearch />
 
+          {/* Notification Bell (authenticated users only) */}
+          {session?.user && <NotificationBell />}
+
           {/* Auth Section */}
           {isLoading ? (
             <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
@@ -76,6 +80,7 @@ export function Header() {
         {/* Mobile Menu */}
         <div className="flex items-center gap-2 md:hidden">
           <MobileSearch />
+          {session?.user && <NotificationBell />}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">

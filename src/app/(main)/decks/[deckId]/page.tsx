@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo } from 'react';
+import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,7 @@ import {
   Calendar,
   Eye,
   EyeOff,
+  Mail,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -38,6 +39,9 @@ import { Container } from '@/components/layout/container';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
 import { DeckViewSkeleton } from '@/components/decks/deck-view-skeleton';
+import { NewMessageDialog } from '@/components/messaging';
+import { CollaboratorList } from '@/components/collaboration';
+import { ReviewList } from '@/components/reviews';
 import { groupCardsByType, calculateManaCurve, calculateTotalCards } from '@/lib/deck-utils';
 import { cn } from '@/lib/utils';
 import type { DeckCard, Card as PrismaCard } from '@prisma/client';
@@ -56,6 +60,9 @@ export default function DeckViewPage({ params }: PageProps) {
   const deleteDeck = useDeleteDeck();
   const { toggle: toggleLike, isPending: isLikePending } = useToggleDeckLike();
   const { toast } = useToast();
+
+  // Dialog state for messaging
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   // Memoize computed values - must be called before any early returns (rules of hooks)
   const deck = data?.deck;
@@ -194,20 +201,23 @@ export default function DeckViewPage({ params }: PageProps) {
 
               {/* Owner Info & Actions */}
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
+                <Link
+                  href={`/users/${deck.userId}`}
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={deck.user.image ?? undefined} />
                     <AvatarFallback>{deck.user.name?.charAt(0) ?? 'U'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{deck.user.name}</p>
+                    <p className="font-medium hover:underline">{deck.user.name}</p>
                     <p className="text-muted-foreground text-sm">
                       Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}
                     </p>
                   </div>
-                </div>
+                </Link>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {isOwner && (
                     <>
                       <Link href={`/decks/${deckId}/edit`}>
@@ -242,6 +252,12 @@ export default function DeckViewPage({ params }: PageProps) {
                         </DialogContent>
                       </Dialog>
                     </>
+                  )}
+                  {!isOwner && session?.user && (
+                    <Button variant="outline" size="sm" onClick={() => setShowMessageDialog(true)}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Message
+                    </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={handleCopyUrl}>
                     <Share2 className="mr-2 h-4 w-4" />
@@ -463,8 +479,22 @@ export default function DeckViewPage({ params }: PageProps) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Collaborators */}
+            <CollaboratorList deckId={deckId} isOwner={isOwner} />
+
+            {/* Reviews */}
+            <ReviewList deckId={deckId} deckOwnerId={deck.userId} />
           </div>
         </div>
+
+        {/* Message Dialog */}
+        <NewMessageDialog
+          recipientId={deck.userId}
+          recipientName={deck.user.name ?? undefined}
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+        />
       </Container>
     </div>
   );

@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from 'react';
+import { CalendarDays, Mail } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FollowButton } from './follow-button';
 import { UserStats } from './user-stats';
+import { NewMessageDialog } from '@/components/messaging';
 import type { UserProfile } from '@/types/social.types';
-import { CalendarDays } from 'lucide-react';
 
 interface UserProfileHeaderProps {
   user: UserProfile;
@@ -14,6 +17,8 @@ interface UserProfileHeaderProps {
 }
 
 export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHeaderProps) {
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+
   const initials = user.name
     ? user.name
         .split(' ')
@@ -58,9 +63,27 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
             </div>
           </div>
 
-          {/* Follow Button */}
-          {!isOwnProfile && <FollowButton userId={user.id} />}
+          {/* Social Actions */}
+          {!isOwnProfile && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowMessageDialog(true)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Message
+              </Button>
+              <FollowButton userId={user.id} />
+            </div>
+          )}
         </div>
+
+        {/* Message Dialog */}
+        {!isOwnProfile && (
+          <NewMessageDialog
+            recipientId={user.id}
+            recipientName={user.name ?? user.username ?? undefined}
+            open={showMessageDialog}
+            onOpenChange={setShowMessageDialog}
+          />
+        )}
 
         {/* Stats */}
         <div className="mt-6">
