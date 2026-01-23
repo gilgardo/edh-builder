@@ -19,6 +19,7 @@ import {
 
 interface UserMenuProps {
   user: {
+    id?: string;
     name?: string | null;
     email?: string | null;
     image?: string | null;
@@ -53,7 +54,7 @@ export function UserMenu({ user }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href={"/profile" as Route} className="flex cursor-pointer items-center">
+            <Link href={`/users/${user.id}` as Route} className="flex cursor-pointer items-center">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </Link>

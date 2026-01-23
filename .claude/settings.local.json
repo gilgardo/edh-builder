@@ -4,7 +4,9 @@
       "Bash(pnpm lint:*)",
       "Bash(docker exec:*)",
       "Bash(curl:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(docker ps:*)",
+      "mcp__docs__query-docs"
     ]
   },
   "enabledMcpjsonServers": [
