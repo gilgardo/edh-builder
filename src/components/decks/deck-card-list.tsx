@@ -4,6 +4,7 @@ import { Layers, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
+import { CardTypeIcon, groupNameToCardType } from '@/components/cards/card-type-icon';
 import { Commander, DeckCard, DisplayCard, PreviewableCard } from '@/types/cards';
 import { CardRow } from '../cards/card-row';
 import { cn } from '@/lib/utils';
@@ -101,11 +102,14 @@ export function DeckCardList({
 
         {/* Card Groups in Columns */}
         <div className={cn('gap-4', columnClass)}>
-          {Object.entries(cardGroups).map(([type, cards]) => (
+          {Object.entries(cardGroups).map(([type, cards]) => {
+            const cardType = groupNameToCardType(type);
+            return (
             <div key={type} className="break-inside-avoid mb-4">
               {/* Group Header */}
               <div className="card-group-header mb-0 flex items-center justify-between rounded-t-lg">
-                <h3 className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider">
+                <h3 className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                  {cardType && <CardTypeIcon type={cardType} size="sm" />}
                   {type}
                 </h3>
                 <Badge variant="outline" className="h-5 text-[10px] bg-background/50">
@@ -131,7 +135,8 @@ export function DeckCardList({
                 ))}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         {/* Considering Section */}

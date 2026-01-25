@@ -1,14 +1,15 @@
 'use client';
 
+import Image from 'next/image';
 import { cn, getColorIdentityInfo } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 const MANA_COLORS = [
-  { value: 'W', label: 'White', bgClass: 'bg-mtg-white-500', textClass: 'text-mtg-black-800', glowClass: 'glow-mana-w' },
-  { value: 'U', label: 'Blue', bgClass: 'bg-mtg-blue-500', textClass: 'text-white', glowClass: 'glow-mana-u' },
-  { value: 'B', label: 'Black', bgClass: 'bg-mtg-black-500', textClass: 'text-mtg-white-500', glowClass: 'glow-mana-b' },
-  { value: 'R', label: 'Red', bgClass: 'bg-mtg-red-500', textClass: 'text-white', glowClass: 'glow-mana-r' },
-  { value: 'G', label: 'Green', bgClass: 'bg-mtg-green-500', textClass: 'text-white', glowClass: 'glow-mana-g' },
+  { value: 'W', label: 'White', glowClass: 'glow-mana-w', ringClass: 'ring-amber-300' },
+  { value: 'U', label: 'Blue', glowClass: 'glow-mana-u', ringClass: 'ring-blue-400' },
+  { value: 'B', label: 'Black', glowClass: 'glow-mana-b', ringClass: 'ring-purple-400' },
+  { value: 'R', label: 'Red', glowClass: 'glow-mana-r', ringClass: 'ring-red-400' },
+  { value: 'G', label: 'Green', glowClass: 'glow-mana-g', ringClass: 'ring-green-400' },
 ] as const;
 
 interface ManaFilterPillsProps {
@@ -23,6 +24,12 @@ interface ManaFilterPillsProps {
   /** Additional className */
   className?: string;
 }
+
+const sizeMap = {
+  sm: 24,
+  md: 32,
+  lg: 40,
+};
 
 export function ManaFilterPills({
   selected,
@@ -39,12 +46,7 @@ export function ManaFilterPills({
   };
 
   const colorInfo = getColorIdentityInfo(selected);
-
-  const sizeClasses = {
-    sm: 'h-6 w-6 text-xs',
-    md: 'h-8 w-8 text-sm',
-    lg: 'h-10 w-10 text-base',
-  };
+  const pixelSize = sizeMap[size];
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
@@ -57,14 +59,12 @@ export function ManaFilterPills({
               type="button"
               onClick={() => toggleColor(color.value)}
               className={cn(
-                'relative rounded-full font-bold transition-all duration-200',
+                'relative rounded-full transition-all duration-200',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                sizeClasses[size],
-                color.bgClass,
-                color.textClass,
                 isSelected
                   ? [
                       'ring-2 ring-offset-2 ring-offset-background',
+                      color.ringClass,
                       'scale-110 shadow-lg',
                       color.glowClass,
                       'hover-glow',
@@ -79,14 +79,20 @@ export function ManaFilterPills({
               aria-pressed={isSelected}
               aria-label={`Filter by ${color.label} mana`}
             >
-              {color.value}
+              <Image
+                src={`/magic-svg/${color.value.toLowerCase()}.svg`}
+                alt={color.label}
+                width={pixelSize}
+                height={pixelSize}
+                className="rounded-full"
+                style={{ width: pixelSize, height: pixelSize }}
+              />
               {/* Selection indicator ring animation */}
               {isSelected && (
                 <span
                   className={cn(
                     'absolute inset-0 rounded-full',
-                    'animate-ping opacity-30',
-                    color.bgClass
+                    'animate-ping opacity-30 bg-current'
                   )}
                   style={{ animationDuration: '2s', animationIterationCount: '1' }}
                 />

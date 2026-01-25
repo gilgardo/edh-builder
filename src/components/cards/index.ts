@@ -1,5 +1,7 @@
 export { CardImage } from './card-image';
 export { ManaCost } from './mana-cost';
+export { ManaSymbol } from './mana-symbol';
+export { CardTypeIcon, groupNameToCardType, extractPrimaryType, type CardTypeName } from './card-type-icon';
 export { ColorIdentityBadges } from './color-identity-badges';
 export { CardSearchInput } from './card-search-input';
 export { CardRow } from './card-row';

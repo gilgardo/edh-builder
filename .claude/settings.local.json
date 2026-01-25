@@ -12,7 +12,9 @@
       "Bash(git diff:*)",
       "Skill(frontend-patterns)",
       "Skill(coding-standards)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(ls /home/gilgardo/projects/edh-builder/public/magic-svg/*.svg)",
+      "Bash(xargs -n1 basename)"
     ]
   },
   "enabledMcpjsonServers": [
