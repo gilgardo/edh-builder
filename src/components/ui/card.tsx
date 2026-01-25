@@ -13,6 +13,15 @@ const cardVariants = cva(
         glass: 'glass-card',
         outline: 'border-border bg-transparent',
         ghost: 'border-transparent bg-transparent',
+        surface: 'border-border/50 surface-1',
+        inset: 'border-border/50 surface-inset shadow-inset',
+      },
+      depth: {
+        none: '',
+        1: 'shadow-depth-1',
+        2: 'shadow-depth-2',
+        3: 'shadow-depth-3',
+        4: 'shadow-depth-4',
       },
       hover: {
         none: '',
@@ -20,6 +29,8 @@ const cardVariants = cva(
         glow: 'hover-glow',
         scale: 'hover:scale-[1.02] active-scale',
         border: 'hover:border-primary/50',
+        float: 'float-up press-down',
+        depth: 'hover:shadow-depth-3 transition-shadow',
       },
       gradient: {
         none: '',
@@ -38,6 +49,7 @@ const cardVariants = cva(
     },
     defaultVariants: {
       variant: 'default',
+      depth: 'none',
       hover: 'none',
       gradient: 'none',
     },
@@ -49,15 +61,18 @@ export interface CardProps
     VariantProps<typeof cardVariants> {
   /** Apply foil/holographic shimmer effect on hover */
   foil?: boolean;
+  /** Enable perspective container for 3D children */
+  perspective?: boolean;
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, hover, gradient, foil, ...props }, ref) => (
+  ({ className, variant, depth, hover, gradient, foil, perspective, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        cardVariants({ variant, hover, gradient }),
+        cardVariants({ variant, depth, hover, gradient }),
         foil && 'foil-effect',
+        perspective && 'perspective-container',
         className
       )}
       {...props}

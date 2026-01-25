@@ -183,6 +183,22 @@
 
   /* Border radius */
   --radius: 0.5rem;
+
+  /* ----------------------------------------
+     Elevation System - 3D Depth
+     ---------------------------------------- */
+  --elevation-0: 0;
+  --elevation-1: 2px;
+  --elevation-2: 4px;
+  --elevation-3: 8px;
+  --elevation-4: 16px;
+  --elevation-5: 24px;
+
+  /* Surface colors for depth */
+  --surface-0: hsl(220 14% 98%);
+  --surface-1: hsl(220 14% 96%);
+  --surface-2: hsl(220 14% 94%);
+  --surface-inset: hsl(220 14% 92%);
 }
 
 /* ============================================
@@ -222,6 +238,12 @@
   /* Muted surface */
   --muted: hsl(220 14% 15%);
   --muted-foreground: hsl(220 9% 60%);
+
+  /* Surface colors for depth - Dark Mode */
+  --surface-0: hsl(224 71% 6%);
+  --surface-1: hsl(224 71% 8%);
+  --surface-2: hsl(224 71% 10%);
+  --surface-inset: hsl(224 71% 5%);
 }
 
 /* ============================================
@@ -705,4 +727,428 @@ body {
 .foil-effect:hover::after {
   opacity: 1;
   animation: foil-shimmer 1.5s ease infinite;
+}
+
+/* ============================================
+   3D Depth System - Elevation Shadows
+   ============================================ */
+
+/* Layered shadows for realistic depth */
+.shadow-depth-1 {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-depth-2 {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 16px rgba(0, 0, 0, 0.02);
+}
+
+.shadow-depth-3 {
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 16px 32px rgba(0, 0, 0, 0.04),
+    0 32px 64px rgba(0, 0, 0, 0.02);
+}
+
+.shadow-depth-4 {
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.06),
+    0 16px 32px rgba(0, 0, 0, 0.06),
+    0 32px 64px rgba(0, 0, 0, 0.04),
+    0 64px 128px rgba(0, 0, 0, 0.02);
+}
+
+/* Dark mode depth shadows */
+.dark .shadow-depth-1 {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.dark .shadow-depth-2 {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.25),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.dark .shadow-depth-3 {
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 8px 16px rgba(0, 0, 0, 0.25),
+    0 16px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dark .shadow-depth-4 {
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.35),
+    0 16px 32px rgba(0, 0, 0, 0.3),
+    0 32px 64px rgba(0, 0, 0, 0.25);
+}
+
+/* Inset shadow for recessed areas */
+.shadow-inset {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-inset-lg {
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.08),
+    inset 0 2px 4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.dark .shadow-inset,
+.dark .shadow-inset-lg {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Combined: outer glow + inner depth */
+.shadow-depth-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 16px 32px rgba(0, 0, 0, 0.02);
+}
+
+/* ============================================
+   3D Transforms & Perspective
+   ============================================ */
+
+/* Perspective container */
+.perspective-container {
+  perspective: 1000px;
+  perspective-origin: center;
+}
+
+.perspective-container-shallow {
+  perspective: 2000px;
+}
+
+/* 3D card tilt effect */
+.tilt-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.tilt-3d:hover {
+  transform: rotateX(-5deg) rotateY(5deg) translateZ(10px);
+}
+
+/* Floating effect - subtle Y translation */
+.float-up {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.float-up:hover {
+  transform: translateY(-4px) translateZ(0);
+}
+
+/* Press effect */
+.press-down:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+/* Subtle rotation on hover */
+.rotate-hover {
+  transition: transform 0.2s ease;
+}
+
+.rotate-hover:hover {
+  transform: rotate(-1deg);
+}
+
+/* Card floating animation */
+@keyframes card-float {
+  0%, 100% {
+    transform: translateY(0) rotateX(0) rotateY(0);
+  }
+  50% {
+    transform: translateY(-8px) rotateX(2deg) rotateY(-2deg);
+  }
+}
+
+.animate-card-float {
+  animation: card-float 4s ease-in-out infinite;
+}
+
+/* Subtle pulse for preview card */
+@keyframes preview-pulse {
+  0%, 100% {
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.1),
+      0 16px 32px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 12px 24px rgba(0, 0, 0, 0.12),
+      0 24px 48px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.animate-preview-pulse {
+  animation: preview-pulse 3s ease-in-out infinite;
+}
+
+/* ============================================
+   Surface Backgrounds
+   ============================================ */
+
+/* Elevated surfaces */
+.surface-0 {
+  background-color: var(--surface-0);
+}
+
+.surface-1 {
+  background-color: var(--surface-1);
+}
+
+.surface-2 {
+  background-color: var(--surface-2);
+}
+
+/* Inset/recessed surface */
+.surface-inset {
+  background-color: var(--surface-inset);
+}
+
+/* Gradient surface for visual interest */
+.surface-gradient {
+  background: linear-gradient(
+    180deg,
+    var(--surface-1) 0%,
+    var(--surface-2) 100%
+  );
+}
+
+/* Panel backgrounds with subtle texture */
+.panel-bg {
+  background:
+    radial-gradient(ellipse at top, rgba(255,255,255,0.03) 0%, transparent 50%),
+    var(--surface-1);
+}
+
+.dark .panel-bg {
+  background:
+    radial-gradient(ellipse at top, rgba(255,255,255,0.02) 0%, transparent 50%),
+    var(--surface-1);
+}
+
+/* Deck list background with subtle pattern */
+.decklist-bg {
+  background-color: var(--surface-0);
+  background-image:
+    linear-gradient(var(--surface-1) 1px, transparent 1px),
+    linear-gradient(90deg, var(--surface-1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: -1px -1px;
+}
+
+.dark .decklist-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+}
+
+/* ============================================
+   Card Group Containers
+   ============================================ */
+
+/* Card type group container */
+.card-group {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card-group:hover {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Card group header */
+.card-group-header {
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(180deg, var(--muted) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* Commander box - special emphasis */
+.commander-box {
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.08) 0%,
+    rgba(124, 58, 237, 0.02) 100%
+  );
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  box-shadow:
+    0 2px 4px rgba(124, 58, 237, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark .commander-box {
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.15) 0%,
+    rgba(124, 58, 237, 0.05) 100%
+  );
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+/* Considering section - muted appearance */
+.considering-section {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.06) 0%,
+    rgba(251, 191, 36, 0.02) 100%
+  );
+  border: 1px dashed rgba(251, 191, 36, 0.3);
+}
+
+.dark .considering-section {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.1) 0%,
+    rgba(251, 191, 36, 0.03) 100%
+  );
+}
+
+/* ============================================
+   Enhanced Focus States
+   ============================================ */
+
+/* Animated focus ring */
+.focus-ring-animated:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+  animation: focus-ring-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes focus-ring-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--ring);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 6px var(--ring),
+      0 0 12px var(--ring);
+  }
+}
+
+/* Subtle glow on focus for inputs */
+.focus-glow:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring),
+    0 0 20px rgba(124, 58, 237, 0.15);
+}
+
+/* ============================================
+   Loading & State Transitions
+   ============================================ */
+
+/* Skeleton with depth */
+.skeleton-depth {
+  background: linear-gradient(
+    90deg,
+    var(--surface-inset) 0%,
+    var(--surface-1) 50%,
+    var(--surface-inset) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Content fade in when loading completes */
+.content-appear {
+  animation: content-appear 0.3s ease-out forwards;
+}
+
+@keyframes content-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: content-appear 0.3s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(n+6) { animation-delay: 250ms; }
+
+/* ============================================
+   Reduced Motion Support (Accessibility)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .btn-shimmer::after,
+  .animate-glow,
+  .animate-card-float,
+  .animate-preview-pulse,
+  .skeleton-depth,
+  .pulse-indicator::before,
+  .foil-effect::after {
+    animation: none !important;
+  }
+
+  .hover-lift:hover,
+  .float-up:hover,
+  .tilt-3d:hover {
+    transform: none !important;
+  }
+
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Keep functional transitions but make them instant */
+  .transition-all,
+  .transition-colors,
+  .transition-opacity,
+  .transition-shadow,
+  .transition-transform {
+    transition-duration: 0.01ms !important;
+  }
 }

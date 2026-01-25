@@ -66,8 +66,11 @@ export function CardRow({
   return (
     <div
       className={cn(
-        'hover:bg-muted/50 group flex items-center justify-between rounded px-2 py-1.5 cursor-pointer',
-        hasInvalidQuantity && 'bg-amber-500/10 hover:bg-amber-500/20',
+        'group flex items-center justify-between rounded-lg px-2.5 py-2 cursor-pointer',
+        'transition-all duration-150 ease-out',
+        'hover:bg-muted/60 hover:shadow-depth-1',
+        'active:bg-muted/80 active:shadow-none active:scale-[0.995]',
+        hasInvalidQuantity && 'bg-amber-500/10 hover:bg-amber-500/15 ring-1 ring-amber-500/20',
         className
       )}
       onMouseEnter={() => onHover?.(card)}

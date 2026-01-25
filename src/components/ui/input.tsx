@@ -12,6 +12,8 @@ const inputVariants = cva(
         filled: 'border-transparent bg-muted/50 focus-visible:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring',
         ghost: 'border-transparent bg-transparent focus-visible:bg-muted/30 focus-visible:ring-1 focus-visible:ring-ring',
         outline: 'border-border bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary',
+        elevated: 'border-border/50 bg-card shadow-depth-2 focus-visible:shadow-depth-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary/50',
+        inset: 'border-transparent surface-inset shadow-inset focus-visible:shadow-none focus-visible:ring-2 focus-visible:ring-ring',
       },
       inputSize: {
         default: 'h-9',

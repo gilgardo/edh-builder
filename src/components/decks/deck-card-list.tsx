@@ -80,16 +80,21 @@ export function DeckCardList({
         {commander && (
           <div
             className={cn(
-              'mb-4 rounded-lg border p-3 cursor-pointer transition-colors',
-              'hover:bg-muted/50'
+              'commander-box mb-4 rounded-xl p-4 cursor-pointer',
+              'transition-all duration-200',
+              'hover:shadow-depth-2'
             )}
             onMouseEnter={() => handleCommanderHover(true)}
             onMouseLeave={() => handleCommanderHover(false)}
           >
-            <div className="text-xs font-medium text-muted-foreground mb-1">Commander</div>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70">
+                Commander
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               {commander.manaCost && <ManaCost cost={commander.manaCost} size="sm" />}
-              <span className="font-medium text-sm">{commander.name}</span>
+              <span className="font-semibold text-sm">{commander.name}</span>
             </div>
           </div>
         )}
@@ -98,13 +103,17 @@ export function DeckCardList({
         <div className={cn('gap-4', columnClass)}>
           {Object.entries(cardGroups).map(([type, cards]) => (
             <div key={type} className="break-inside-avoid mb-4">
-              <div className="mb-1.5 flex items-center justify-between">
-                <h3 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{type}</h3>
-                <Badge variant="outline" className="text-xs h-5">
+              {/* Group Header */}
+              <div className="card-group-header mb-0 flex items-center justify-between rounded-t-lg">
+                <h3 className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider">
+                  {type}
+                </h3>
+                <Badge variant="outline" className="h-5 text-[10px] bg-background/50">
                   {cards.reduce((acc, c) => acc + c.quantity, 0)}
                 </Badge>
               </div>
-              <div className="space-y-0.5 rounded-lg border bg-card p-1">
+              {/* Card List Container */}
+              <div className="card-group space-y-0.5 rounded-b-lg rounded-t-none border-t-0 p-1.5">
                 {cards.map((deckCard) => (
                   <CardRow
                     key={deckCard.card.id}
@@ -127,18 +136,20 @@ export function DeckCardList({
 
         {/* Considering Section */}
         {consideringCards.length > 0 && (
-          <div className="mt-6 border-t pt-4">
-            <div className="mb-2 flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
-              <h3 className="text-sm font-medium">Considering</h3>
-              <Badge variant="outline" className="text-xs h-5">
+          <div className="considering-section mt-6 rounded-xl p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+              </div>
+              <h3 className="text-sm font-semibold">Considering</h3>
+              <Badge variant="outline" className="h-5 text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400">
                 {consideringCards.reduce((acc, c) => acc + c.quantity, 0)}
               </Badge>
             </div>
-            <p className="text-muted-foreground text-xs mb-3">
+            <p className="mb-3 text-xs text-muted-foreground">
               Cards you&apos;re thinking about adding. Not counted in deck total.
             </p>
-            <div className="space-y-0.5 rounded-lg border bg-card/50 p-1">
+            <div className="space-y-0.5 rounded-lg bg-background/50 p-1.5">
               {consideringCards.map((deckCard) => (
                 <CardRow
                   key={deckCard.card.id}
