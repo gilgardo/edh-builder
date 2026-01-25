@@ -9,7 +9,9 @@
       "mcp__docs__query-docs",
       "mcp__filesystem__read_multiple_files",
       "Bash(grep:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Skill(frontend-patterns)",
+      "Skill(coding-standards)"
     ]
   },
   "enabledMcpjsonServers": [

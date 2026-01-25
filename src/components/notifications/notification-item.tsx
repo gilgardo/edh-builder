@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import type { TypedNotification, NotificationData } from '@/types/social.types';
 import type { NotificationType } from '@prisma/client';
 
@@ -27,37 +28,55 @@ interface NotificationItemProps {
 
 const notificationConfig: Record<
   NotificationType,
-  { icon: typeof Heart; color: string; bgColor: string }
+  {
+    icon: typeof Heart;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    label: string;
+  }
 > = {
   DECK_LIKE: {
     icon: Heart,
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10',
+    color: 'text-rose-500',
+    bgColor: 'bg-rose-500/10',
+    borderColor: 'border-l-rose-500',
+    label: 'Like',
   },
   DECK_REVIEW: {
     icon: Star,
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-500/10',
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-l-amber-500',
+    label: 'Review',
   },
   COLLABORATION_INVITE: {
     icon: UserPlus,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
+    color: 'text-sky-500',
+    bgColor: 'bg-sky-500/10',
+    borderColor: 'border-l-sky-500',
+    label: 'Invite',
   },
   COLLABORATION_ACCEPTED: {
     icon: CheckCircle,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
+    borderColor: 'border-l-emerald-500',
+    label: 'Accepted',
   },
   NEW_FOLLOWER: {
     icon: Users,
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
+    color: 'text-violet-500',
+    bgColor: 'bg-violet-500/10',
+    borderColor: 'border-l-violet-500',
+    label: 'Follower',
   },
   NEW_MESSAGE: {
     icon: MessageCircle,
     color: 'text-teal-500',
     bgColor: 'bg-teal-500/10',
+    borderColor: 'border-l-teal-500',
+    label: 'Message',
   },
 };
 
@@ -115,56 +134,73 @@ export function NotificationItem({
   const content = (
     <div
       className={cn(
-        'flex items-start gap-3 p-3 rounded-lg transition-colors',
-        isUnread ? 'bg-muted/50' : 'bg-transparent',
-        link && 'hover:bg-muted cursor-pointer'
+        'relative flex items-start gap-3 p-3 rounded-lg transition-all duration-200',
+        'border-l-2',
+        isUnread ? [config.borderColor, 'bg-muted/40'] : ['border-l-transparent', 'bg-transparent'],
+        link && 'hover:bg-muted/60 cursor-pointer hover:shadow-sm'
       )}
     >
-      {/* Icon */}
-      <div className={cn('rounded-full p-2 shrink-0', config.bgColor)}>
+      {/* Icon with animated ring for unread */}
+      <div className={cn('relative rounded-full p-2 shrink-0 transition-colors', config.bgColor)}>
         <Icon className={cn('h-4 w-4', config.color)} />
+        {isUnread && (
+          <span
+            className={cn(
+              'absolute inset-0 rounded-full animate-ping opacity-30',
+              config.bgColor
+            )}
+            style={{ animationDuration: '2s', animationIterationCount: '1' }}
+          />
+        )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {!compact && (
-              <Avatar className="h-6 w-6">
+              <Avatar className="h-6 w-6 ring-2 ring-background">
                 <AvatarImage src={actorImage ?? undefined} alt={actorName} />
-                <AvatarFallback className="text-xs">
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">
                   {actorName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
-            <p className={cn('text-sm', isUnread && 'font-medium')}>
+            <p className={cn('text-sm', isUnread && 'font-medium text-foreground')}>
               {notification.title}
             </p>
+            {compact && (
+              <Badge variant="muted" size="sm" className="ml-1">
+                {config.label}
+              </Badge>
+            )}
           </div>
-          {isUnread && (
-            <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
+          {isUnread && !compact && (
+            <Badge variant="default" size="sm" dot className="shrink-0">
+              New
+            </Badge>
           )}
         </div>
 
         {notification.message && !compact && (
-          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
             {notification.message}
           </p>
         )}
 
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1.5">
           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
         </p>
       </div>
 
       {/* Actions */}
       {!compact && (onMarkRead || onDelete) && (
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           {onMarkRead && isUnread && (
             <Button
               variant="ghost"
-              size="icon"
-              className="h-7 w-7"
+              size="icon-sm"
+              className="h-7 w-7 text-muted-foreground hover:text-primary"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -178,7 +214,7 @@ export function NotificationItem({
           {onDelete && (
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-sm"
               className="h-7 w-7 text-muted-foreground hover:text-destructive"
               onClick={(e) => {
                 e.preventDefault();
@@ -197,11 +233,15 @@ export function NotificationItem({
 
   if (link) {
     return (
-      <Link href={link as Route} onClick={() => isUnread && onMarkRead?.(notification.id)}>
+      <Link
+        href={link as Route}
+        onClick={() => isUnread && onMarkRead?.(notification.id)}
+        className="group block"
+      >
         {content}
       </Link>
     );
   }
 
-  return content;
+  return <div className="group">{content}</div>;
 }

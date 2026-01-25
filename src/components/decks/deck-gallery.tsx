@@ -1,10 +1,13 @@
 'use client';
+
 import { useState } from 'react';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Search, X, SlidersHorizontal, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useDecks } from '@/hooks/use-decks';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -12,16 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ManaFilterPills } from '@/components/cards';
 import { DeckCard, DeckCardSkeleton } from './deck-card';
 import { cn } from '@/lib/utils';
-
-const MTG_COLORS = [
-  { value: 'W', label: 'White', className: 'bg-mtg-white-500 text-mtg-black-800' },
-  { value: 'U', label: 'Blue', className: 'bg-mtg-blue-500 text-white' },
-  { value: 'B', label: 'Black', className: 'bg-mtg-black-500 text-mtg-white-500' },
-  { value: 'R', label: 'Red', className: 'bg-mtg-red-500 text-white' },
-  { value: 'G', label: 'Green', className: 'bg-mtg-green-500 text-white' },
-];
 
 const FORMATS = [
   { value: 'COMMANDER', label: 'Commander' },
@@ -58,13 +54,6 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
     limit: 12,
   });
 
-  const toggleColor = (color: string) => {
-    setColorIdentity((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
-    );
-    setPage(1);
-  };
-
   const resetFilters = () => {
     setSearch('');
     setColorIdentity([]);
@@ -73,6 +62,7 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
   };
 
   const hasActiveFilters = search || colorIdentity.length > 0 || format;
+  const activeFilterCount = (search ? 1 : 0) + (colorIdentity.length > 0 ? 1 : 0) + (format ? 1 : 0);
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -88,85 +78,96 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Search decks..."
-                className="pl-10"
+                placeholder="Search decks by name or commander..."
+                variant="filled"
+                className="pl-10 pr-10"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
             <Button
-              variant="outline"
+              variant={isFilterOpen ? 'secondary' : 'outline'}
               size="icon"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={cn(isFilterOpen && 'bg-muted')}
+              className="relative"
             >
               <SlidersHorizontal className="h-4 w-4" />
+              {activeFilterCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  size="sm"
+                  className="absolute -top-1.5 -right-1.5 h-5 w-5 p-0 flex items-center justify-center"
+                >
+                  {activeFilterCount}
+                </Badge>
+              )}
             </Button>
           </div>
 
-          {/* Filters */}
+          {/* Filters Panel */}
           {isFilterOpen && (
-            <div className="border-border bg-card flex flex-wrap items-center gap-4 rounded-lg border p-4">
-              {/* Color Filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Colors:</span>
-                <div className="flex gap-1">
-                  {MTG_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() => toggleColor(color.value)}
-                      className={cn(
-                        'h-7 w-7 rounded-full text-xs font-bold transition-all',
-                        color.className,
-                        colorIdentity.includes(color.value)
-                          ? 'ring-ring ring-2 ring-offset-2'
-                          : 'opacity-50 hover:opacity-75'
-                      )}
-                    >
-                      {color.value}
-                    </button>
-                  ))}
+            <Card
+              variant="elevated"
+              className="p-4 animate-in fade-in-0 slide-in-from-top-2 duration-200"
+            >
+              <div className="flex flex-wrap items-center gap-6">
+                {/* Color Filter */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Color Identity</span>
+                  <ManaFilterPills
+                    selected={colorIdentity}
+                    onChange={(colors) => {
+                      setColorIdentity(colors);
+                      setPage(1);
+                    }}
+                    size="md"
+                  />
                 </div>
-              </div>
 
-              {/* Format Filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Format:</span>
-                <Select
-                  value={format}
-                  onValueChange={(v) => {
-                    setFormat(v);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="All formats" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FORMATS.map((f) => (
-                      <SelectItem key={f.value} value={f.value}>
-                        {f.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Format Filter */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Format</span>
+                  <Select
+                    value={format}
+                    onValueChange={(v) => {
+                      setFormat(v);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="All formats" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FORMATS.map((f) => (
+                        <SelectItem key={f.value} value={f.value}>
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Reset */}
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={resetFilters}>
-                  Clear all
-                </Button>
-              )}
-            </div>
+                {/* Reset */}
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="ml-auto text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    Clear all filters
+                  </Button>
+                )}
+              </div>
+            </Card>
           )}
         </div>
       )}
@@ -174,10 +175,18 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
       {/* Results Header */}
       {data && (
         <div className="text-muted-foreground flex items-center justify-between text-sm">
-          <span>
-            {data.total} {data.total === 1 ? 'deck' : 'decks'} found
+          <span className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            <span>
+              <span className="font-medium text-foreground">{data.total}</span>{' '}
+              {data.total === 1 ? 'deck' : 'decks'} found
+            </span>
           </span>
-          {isFetching && <span className="animate-pulse">Updating...</span>}
+          {isFetching && (
+            <Badge variant="muted" size="sm" className="animate-pulse">
+              Updating...
+            </Badge>
+          )}
         </div>
       )}
 
@@ -201,20 +210,28 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
 
       {/* Empty State */}
       {!isLoading && data?.decks?.length === 0 && (
-        <div className="py-12 text-center">
-          <p className="text-muted-foreground">
-            {hasActiveFilters
-              ? 'No decks found matching your filters.'
-              : mine
-                ? "You haven't created any decks yet."
-                : 'No decks found. Be the first to create one!'}
-          </p>
-          {hasActiveFilters && (
-            <Button variant="link" onClick={resetFilters} className="mt-2">
-              Clear filters
-            </Button>
-          )}
-        </div>
+        <Card variant="ghost" className="py-16 text-center">
+          <div className="mx-auto max-w-md space-y-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <Layers className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">No decks found</h3>
+              <p className="text-muted-foreground text-sm">
+                {hasActiveFilters
+                  ? 'Try adjusting your filters or search terms.'
+                  : mine
+                    ? "You haven't created any decks yet. Start building your first Commander deck!"
+                    : 'No decks have been shared yet. Be the first to create one!'}
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={resetFilters}>
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </Card>
       )}
 
       {/* Pagination */}
@@ -226,11 +243,39 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1 || isFetching}
           >
+            <ChevronLeft className="mr-1 h-4 w-4" />
             Previous
           </Button>
-          <span className="text-muted-foreground text-sm">
-            Page {page} of {data.totalPages}
-          </span>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+              // Show pages around current page
+              let pageNum: number;
+              if (data.totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (page <= 3) {
+                pageNum = i + 1;
+              } else if (page >= data.totalPages - 2) {
+                pageNum = data.totalPages - 4 + i;
+              } else {
+                pageNum = page - 2 + i;
+              }
+
+              return (
+                <Button
+                  key={pageNum}
+                  variant={page === pageNum ? 'default' : 'ghost'}
+                  size="icon-sm"
+                  onClick={() => setPage(pageNum)}
+                  disabled={isFetching}
+                  className="w-8"
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+
           <Button
             variant="outline"
             size="sm"
@@ -238,6 +283,7 @@ export function DeckGallery({ mine, userId, showFilters = true, className }: Dec
             disabled={page === data.totalPages || isFetching}
           >
             Next
+            <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
       )}
