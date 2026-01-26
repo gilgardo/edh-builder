@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, X, Filter } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import type { useCardSearch } from '@/hooks/use-card-search';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -15,16 +13,8 @@ import {
 } from '@/components/ui/select';
 import { CardSearchGrid } from '@/components/cards/card-search-grid';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
-import { cn } from '@/lib/utils';
+import { ManaFilterPills } from '@/components/cards/mana-filter-pills';
 import type { ScryfallCard } from '@/types/scryfall.types';
-
-const MTG_COLORS = [
-  { value: 'W', label: 'White', className: 'bg-mtg-white-500 text-mtg-black-800' },
-  { value: 'U', label: 'Blue', className: 'bg-mtg-blue-500 text-white' },
-  { value: 'B', label: 'Black', className: 'bg-mtg-black-500 text-mtg-white-500' },
-  { value: 'R', label: 'Red', className: 'bg-mtg-red-500 text-white' },
-  { value: 'G', label: 'Green', className: 'bg-mtg-green-500 text-white' },
-];
 
 interface CardSearchSheetProps {
   open: boolean;
@@ -41,9 +31,14 @@ export function CardSearchSheet({
   onAddCard,
   isAdding,
 }: CardSearchSheetProps) {
-  const [showFilters, setShowFilters] = useState(false);
-
   const { cards, isLoading, params, setQuery, toggleColor, setType } = search;
+
+  const handleColorChange = (colors: string[]) => {
+    // Toggle each color that changed
+    const added = colors.filter((c) => !params.colors.includes(c));
+    const removed = params.colors.filter((c) => !colors.includes(c));
+    [...added, ...removed].forEach((color) => toggleColor(color));
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -52,8 +47,9 @@ export function CardSearchSheet({
           <SheetTitle className="text-left">Search Cards</SheetTitle>
         </SheetHeader>
 
-        {/* Search and Filters */}
+        {/* Search and Filters - all inline */}
         <div className="space-y-3 border-b px-4 py-3">
+          {/* Search input */}
           <div className="relative">
             <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input
@@ -74,66 +70,41 @@ export function CardSearchSheet({
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
+          {/* Inline filters with mana symbols */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Mana color filters with proper SVG symbols */}
+            <ManaFilterPills
+              selected={params.colors}
+              onChange={handleColorChange}
               size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(showFilters && 'bg-muted')}
-            >
-              <Filter className="mr-2 h-4 w-4" />
-              Filters
-            </Button>
+              showGuildName={false}
+            />
+
+            {/* Type filter dropdown */}
+            <Select value={params.type || ''} onValueChange={setType}>
+              <SelectTrigger className="h-8 w-28 text-xs">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Any type</SelectItem>
+                <SelectItem value="creature">Creature</SelectItem>
+                <SelectItem value="instant">Instant</SelectItem>
+                <SelectItem value="sorcery">Sorcery</SelectItem>
+                <SelectItem value="artifact">Artifact</SelectItem>
+                <SelectItem value="enchantment">Enchantment</SelectItem>
+                <SelectItem value="planeswalker">Planeswalker</SelectItem>
+                <SelectItem value="land">Land</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Color identity limit indicator */}
             {params.colorIdentity && params.colorIdentity.length > 0 && (
-              <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                <span>Limited to:</span>
-                <ColorIdentityBadges colors={params.colorIdentity} size="sm" />
+              <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                <span>Deck:</span>
+                <ColorIdentityBadges colors={params.colorIdentity} size="xs" />
               </div>
             )}
           </div>
-
-          {showFilters && (
-            <div className="bg-muted/30 flex flex-wrap items-center gap-4 rounded-lg border p-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Colors:</span>
-                <div className="flex gap-1">
-                  {MTG_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() => toggleColor(color.value)}
-                      className={cn(
-                        'h-6 w-6 rounded-full text-xs font-bold transition-all',
-                        color.className,
-                        params.colors.includes(color.value)
-                          ? 'ring-ring ring-2 ring-offset-1'
-                          : 'opacity-50 hover:opacity-75'
-                      )}
-                    >
-                      {color.value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Type:</span>
-                <Select value={params.type || ''} onValueChange={setType}>
-                  <SelectTrigger className="h-8 w-32">
-                    <SelectValue placeholder="Any" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="creature">Creature</SelectItem>
-                    <SelectItem value="instant">Instant</SelectItem>
-                    <SelectItem value="sorcery">Sorcery</SelectItem>
-                    <SelectItem value="artifact">Artifact</SelectItem>
-                    <SelectItem value="enchantment">Enchantment</SelectItem>
-                    <SelectItem value="planeswalker">Planeswalker</SelectItem>
-                    <SelectItem value="land">Land</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Search Results */}

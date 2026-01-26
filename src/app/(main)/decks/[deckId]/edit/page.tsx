@@ -66,10 +66,7 @@ export default function DeckEditPage({ params }: PageProps) {
     () => getConsideringCards(nonCommanderCards),
     [nonCommanderCards]
   );
-  const totalCards = useMemo(
-    () => calculateTotalCards(deck?.cards, 'CONSIDERING'),
-    [deck?.cards]
-  );
+  const totalCards = useMemo(() => calculateTotalCards(deck?.cards, 'CONSIDERING'), [deck?.cards]);
 
   const updateDeck = useUpdateDeck();
   const addCard = useAddCardToDeck();
@@ -81,31 +78,34 @@ export default function DeckEditPage({ params }: PageProps) {
 
   const { query } = searchParams;
 
-  const handleAddCard = useCallback(
-    async (card: ScryfallCard) => {
-      try {
-        await addCard.mutateAsync({
-          deckId,
-          scryfallCard: card,
-          category: 'MAIN',
-        });
-      } catch {
-        toast('Failed to add card to deck', 'error');
+  const handleAddCard = (card: ScryfallCard) => {
+    addCard.mutate(
+      {
+        deckId,
+        scryfallCard: card,
+        category: 'MAIN',
+      },
+      {
+        onSuccess: () => {
+          toast(`${card.name} successfully added`, 'success');
+          // Close sheet only after mutation completes successfully
+          setSearchSheetOpen(false);
+        },
+        onError: () => {
+          toast('Failed to add the card', 'error');
+          // Also close on error so user can retry
+          setSearchSheetOpen(false);
+        },
       }
-    },
-    [addCard, deckId, toast]
-  );
+    );
+  };
 
-  const handleRemoveCard = useCallback(
-    async (cardId: string) => {
-      try {
-        await removeCard.mutateAsync({ deckId, cardId });
-      } catch {
-        toast('Failed to remove card from deck', 'error');
-      }
-    },
-    [removeCard, deckId, toast]
-  );
+  const handleRemoveCard = (cardId: string) => {
+    removeCard.mutate(
+      { deckId, cardId },
+      { onError: () => toast('Failed to remove card from deck', 'error') }
+    );
+  };
 
   const handleCardHover = useCallback((card: PreviewableCard | null) => {
     setHoveredCard(card);
@@ -116,26 +116,23 @@ export default function DeckEditPage({ params }: PageProps) {
     setPrintingsModalOpen(true);
   }, []);
 
-  const handleSelectPrinting = useCallback(
-    async (scryfallCard: ScryfallCard) => {
-      if (!selectedCardForPrinting || !deck) return;
-      try {
-        const currentDeckCard = deck.cards.find((dc) => dc.card.id === selectedCardForPrinting.id);
-        if (!currentDeckCard) return;
+  const handleSelectPrinting = async (scryfallCard: ScryfallCard) => {
+    if (!selectedCardForPrinting || !deck) return;
+    try {
+      const currentDeckCard = deck.cards.find((dc) => dc.card.id === selectedCardForPrinting.id);
+      if (!currentDeckCard) return;
 
-        await removeCard.mutateAsync({ deckId, cardId: selectedCardForPrinting.id });
-        await addCard.mutateAsync({
-          deckId,
-          scryfallCard,
-          quantity: currentDeckCard.quantity,
-          category: currentDeckCard.category as CardCategory,
-        });
-      } catch {
-        toast('Failed to change card printing', 'error');
-      }
-    },
-    [deck, selectedCardForPrinting, deckId, removeCard, addCard, toast]
-  );
+      await removeCard.mutateAsync({ deckId, cardId: selectedCardForPrinting.id });
+      await addCard.mutateAsync({
+        deckId,
+        scryfallCard,
+        quantity: currentDeckCard.quantity,
+        category: currentDeckCard.category as CardCategory,
+      });
+    } catch {
+      toast('Failed to change card printing', 'error');
+    }
+  };
 
   const handleChangeQuantity = useCallback(
     async (card: DisplayCard, quantity: number) => {
@@ -266,17 +263,26 @@ export default function DeckEditPage({ params }: PageProps) {
         </Container>
       </div>
 
-      {/* Mobile: Compact Searchbar */}
+      {/* Mobile: Compact Searchbar with inline filters */}
       <div className="shrink-0 border-b px-4 py-3 md:hidden">
         <CardSearchInput
           value={searchParams.query || ''}
           onChange={setQuery}
-          onOpenFullSearch={() => setSearchSheetOpen(true)}
           cards={cards}
           onCardClick={handleAddCard}
           isLoading={isSearching}
           maxResults={6}
           placeholder="Search cards..."
+          showFilters
+          selectedColors={searchParams.colors}
+          onColorToggle={(colors) => {
+            // Toggle each color that changed
+            const added = colors.filter((c) => !searchParams.colors.includes(c));
+            const removed = searchParams.colors.filter((c) => !colors.includes(c));
+            [...added, ...removed].forEach((color) => search.toggleColor(color));
+          }}
+          selectedType={searchParams.type || ''}
+          onTypeChange={search.setType}
         />
       </div>
 
@@ -334,7 +340,7 @@ export default function DeckEditPage({ params }: PageProps) {
 
         {/* Right Panel - Search + Deck List (Full Width, Multi-Column) */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Compact Search Bar */}
+          {/* Search Bar with inline filters */}
           <div className="shrink-0 border-b p-4">
             <CardSearchInput
               value={query}
@@ -344,6 +350,15 @@ export default function DeckEditPage({ params }: PageProps) {
               cards={cards}
               isLoading={isSearching}
               isAdding={addCard.isPending}
+              showFilters
+              selectedColors={searchParams.colors}
+              onColorToggle={(colors) => {
+                const added = colors.filter((c) => !searchParams.colors.includes(c));
+                const removed = searchParams.colors.filter((c) => !colors.includes(c));
+                [...added, ...removed].forEach((color) => search.toggleColor(color));
+              }}
+              selectedType={searchParams.type || ''}
+              onTypeChange={search.setType}
             />
           </div>
 

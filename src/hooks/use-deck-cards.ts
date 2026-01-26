@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CardCategory } from '@/schemas/deck.schema';
 import type { ScryfallCard } from '@/types/scryfall.types';
+import { Card } from '@prisma/client';
 
 interface AddCardData {
   deckId: string;
@@ -23,7 +24,12 @@ interface UpdateCardData {
   category?: CardCategory;
 }
 
-async function addCardToDeck({ deckId, scryfallCard, quantity = 1, category = 'MAIN' }: AddCardData) {
+async function addCardToDeck({
+  deckId,
+  scryfallCard,
+  quantity = 1,
+  category = 'MAIN',
+}: AddCardData): Promise<Card> {
   const response = await fetch(`/api/decks/${deckId}/cards`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

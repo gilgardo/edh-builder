@@ -900,6 +900,22 @@ body {
   animation: preview-pulse 3s ease-in-out infinite;
 }
 
+/* Quick ping animation for click feedback */
+@keyframes ping-once {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+.animate-ping-once {
+  animation: ping-once 0.2s ease-out forwards;
+}
+
 /* ============================================
    Surface Backgrounds
    ============================================ */

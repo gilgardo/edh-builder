@@ -86,7 +86,7 @@ logs-db:
 # ===========================================
 
 shell:
-	docker compose exec app sh
+	docker compose exec app zsh 
 
 shell-db:
 	docker compose exec db psql -U edh_user -d edh_builder

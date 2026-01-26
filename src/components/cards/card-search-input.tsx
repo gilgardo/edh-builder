@@ -3,12 +3,20 @@
 import { useRef, useCallback, useState } from 'react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { Search, X, Plus, Eye, ChevronRight } from 'lucide-react';
+import { Search, X, Plus, ChevronRight } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ManaCost } from './mana-cost';
+import { ManaFilterPillsCompact } from './mana-filter-pills';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { PreviewableCard } from '@/types/cards';
 import type { ScryfallCard } from '@/types/scryfall.types';
 
@@ -27,7 +35,6 @@ interface CardSearchInputProps {
   onChange: (value: string) => void;
   onCardClick?: (card: ScryfallCard) => void;
   onCardHover?: (card: PreviewableCard | null) => void;
-  onOpenFullSearch?: () => void;
   onClear?: () => void;
   cards?: ScryfallCard[];
   isLoading?: boolean;
@@ -46,6 +53,16 @@ interface CardSearchInputProps {
   maxDeckResults?: number;
   /** Display mode: 'add' shows plus button, 'navigate' shows chevron */
   cardActionMode?: 'add' | 'navigate';
+  /** Color filter state */
+  selectedColors?: string[];
+  onColorToggle?: (colors: string[]) => void;
+  /** Type filter state */
+  selectedType?: string;
+  onTypeChange?: (type: string) => void;
+  /** Show inline filters */
+  showFilters?: boolean;
+  /** Controlled dropdown state - when true, dropdown stays open */
+  keepDropdownOpen?: boolean;
 }
 
 export function CardSearchInput({
@@ -53,7 +70,6 @@ export function CardSearchInput({
   onChange,
   onCardClick,
   onCardHover,
-  onOpenFullSearch,
   onClear,
   cards = [],
   isLoading,
@@ -69,6 +85,12 @@ export function CardSearchInput({
   isDecksLoading = false,
   maxDeckResults = 4,
   cardActionMode = 'add',
+  selectedColors = [],
+  onColorToggle,
+  selectedType = '',
+  onTypeChange,
+  showFilters = false,
+  keepDropdownOpen = false,
 }: CardSearchInputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,9 +114,13 @@ export function CardSearchInput({
 
   const handleCardClick = useCallback(
     (card: ScryfallCard) => {
+      // Only close dropdown if not in controlled "keep open" mode
+      if (!keepDropdownOpen) {
+        setIsFocused(false);
+      }
       onCardClick?.(card);
     },
-    [onCardClick]
+    [onCardClick, keepDropdownOpen]
   );
 
   const handleCardMouseEnter = useCallback(
@@ -127,18 +153,17 @@ export function CardSearchInput({
   const hasDeckResults = showDecks && decks.length > 0 && value.length >= 3;
   const hasAnyResults = hasCardResults || hasDeckResults;
   const anyLoading = isLoading || (showDecks && isDecksLoading);
-  const showDropdown = isFocused && value.length >= 3;
+  // Keep dropdown open if focused OR if parent wants it open (e.g., during mutation)
+  const showDropdown = (isFocused || keepDropdownOpen) && value.length >= 3;
   const displayCards = cards.slice(0, maxResults);
   const displayDecks = decks.slice(0, maxDeckResults);
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('relative', className)}
-      onBlur={handleBlur}
-    >
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+    <div ref={containerRef} className={cn('relative', className)} onBlur={handleBlur}>
+      {/* Responsive layout: stack on mobile, row on md+ */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        {/* Search input wrapper - contains dropdown positioning context */}
+        <div className="relative w-full md:max-w-sm lg:max-w-md">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             ref={inputRef}
@@ -158,86 +183,109 @@ export function CardSearchInput({
               <X className="h-4 w-4" />
             </button>
           )}
-        </div>
-        {onOpenFullSearch && (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onOpenFullSearch}
-            className="shrink-0"
-            title="Open full search"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
 
-      {/* Search results dropdown */}
-      {showDropdown && hasAnyResults && (
-        <div className={cn(
-          'bg-card absolute top-full right-0 left-0 z-50 mt-1 max-h-96 overflow-auto rounded-md border-2 border-border shadow-lg',
-          dropdownClassName
-        )}>
-          {/* Card results */}
-          {hasCardResults && (
-            <div className="p-1">
-              {showDecks && (
-                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                  Cards
+          {/* Search results dropdown - positioned under input */}
+          {showDropdown && hasAnyResults && (
+            <div
+              className={cn(
+                'bg-card border-border absolute top-full right-0 left-0 z-50 mt-1 max-h-96 overflow-auto rounded-md border-2 shadow-lg',
+                dropdownClassName
+              )}
+            >
+              {/* Card results */}
+              {hasCardResults && (
+                <div className="p-1">
+                  {showDecks && (
+                    <div className="text-muted-foreground px-2 py-1 text-xs font-semibold uppercase">
+                      Cards
+                    </div>
+                  )}
+                  {displayCards.map((card) => (
+                    <CardResultRow
+                      key={card.id}
+                      card={card}
+                      actionMode={cardActionMode}
+                      isAdding={isAdding}
+                      onMouseEnter={() => handleCardMouseEnter(card)}
+                      onMouseLeave={handleCardMouseLeave}
+                      onClick={() => handleCardClick(card)}
+                    />
+                  ))}
                 </div>
               )}
-              {displayCards.map((card) => (
-                <CardResultRow
-                  key={card.id}
-                  card={card}
-                  actionMode={cardActionMode}
-                  isAdding={isAdding}
-                  onMouseEnter={() => handleCardMouseEnter(card)}
-                  onMouseLeave={handleCardMouseLeave}
-                  onClick={() => handleCardClick(card)}
-                />
-              ))}
+
+              {/* Deck results */}
+              {hasDeckResults && (
+                <div className={cn('p-1', hasCardResults && 'border-border border-t')}>
+                  <div className="text-muted-foreground px-2 py-1 text-xs font-semibold uppercase">
+                    Decks
+                  </div>
+                  {displayDecks.map((deck) => (
+                    <DeckResultRow key={deck.id} deck={deck} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Deck results */}
-          {hasDeckResults && (
-            <div className={cn('p-1', hasCardResults && 'border-t border-border')}>
-              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                Decks
-              </div>
-              {displayDecks.map((deck) => (
-                <DeckResultRow key={deck.id} deck={deck} />
-              ))}
+          {/* Loading state */}
+          {showDropdown && anyLoading && !hasAnyResults && (
+            <div
+              className={cn(
+                'bg-card text-muted-foreground border-border absolute top-full right-0 left-0 z-50 mt-1 rounded-md border-2 p-3 text-center text-sm shadow-lg',
+                dropdownClassName
+              )}
+            >
+              Searching...
+            </div>
+          )}
+
+          {/* No results */}
+          {showDropdown && !anyLoading && !hasAnyResults && (
+            <div
+              className={cn(
+                'bg-card text-muted-foreground border-border absolute top-full right-0 left-0 z-50 mt-1 rounded-md border-2 p-3 text-center text-sm shadow-lg',
+                dropdownClassName
+              )}
+            >
+              No results found
             </div>
           )}
         </div>
-      )}
 
-      {/* Loading state */}
-      {showDropdown && anyLoading && !hasAnyResults && (
-        <div className={cn(
-          'bg-card text-muted-foreground absolute top-full right-0 left-0 z-50 mt-1 rounded-md border-2 border-border p-3 text-center text-sm shadow-lg',
-          dropdownClassName
-        )}>
-          Searching...
-        </div>
-      )}
+        {/* Inline filters - visible when showFilters is true */}
+        {showFilters && (
+          <div className="flex items-center gap-3">
+            {/* Mana color filters with proper SVG symbols */}
+            {onColorToggle && (
+              <ManaFilterPillsCompact selected={selectedColors} onChange={onColorToggle} />
+            )}
 
-      {/* No results */}
-      {showDropdown && !anyLoading && !hasAnyResults && (
-        <div className={cn(
-          'bg-card text-muted-foreground absolute top-full right-0 left-0 z-50 mt-1 rounded-md border-2 border-border p-3 text-center text-sm shadow-lg',
-          dropdownClassName
-        )}>
-          No results found
-        </div>
-      )}
+            {/* Type filter dropdown */}
+            {onTypeChange && (
+              <Select value={selectedType} onValueChange={onTypeChange}>
+                <SelectTrigger className="h-9 w-28 text-xs sm:w-32 sm:text-sm">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="creature">Creature</SelectItem>
+                  <SelectItem value="instant">Instant</SelectItem>
+                  <SelectItem value="sorcery">Sorcery</SelectItem>
+                  <SelectItem value="artifact">Artifact</SelectItem>
+                  <SelectItem value="enchantment">Enchantment</SelectItem>
+                  <SelectItem value="planeswalker">Planeswalker</SelectItem>
+                  <SelectItem value="land">Land</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// Card result row component
+// Card result row component with pulse animation on click
 function CardResultRow({
   card,
   actionMode,
@@ -253,14 +301,26 @@ function CardResultRow({
   onMouseLeave: () => void;
   onClick: () => void;
 }) {
+  const [isPulsing, setIsPulsing] = useState(false);
+
+  const handleClick = () => {
+    setIsPulsing(true);
+    onClick();
+    // Reset pulse state after animation completes
+    setTimeout(() => setIsPulsing(false), 200);
+  };
+
   return (
     <div
-      className="hover:bg-muted group flex items-center justify-between gap-2 px-2 py-1.5 cursor-pointer transition-colors rounded-md"
+      className={cn(
+        'hover:bg-muted group flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-all',
+        isPulsing && 'scale-95 bg-primary/20'
+      )}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onMouseDown={(e) => {
         e.preventDefault();
-        onClick();
+        handleClick();
       }}
       tabIndex={0}
     >
@@ -272,18 +332,21 @@ function CardResultRow({
         <Button
           variant="ghost"
           size="icon"
-          className="text-primary hover:bg-primary/10 h-7 w-7 shrink-0"
+          className={cn(
+            'text-primary hover:bg-primary/10 h-7 w-7 shrink-0 transition-transform',
+            isPulsing && 'scale-125'
+          )}
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            onClick();
+            handleClick();
           }}
           disabled={isAdding}
         >
           <Plus className="h-4 w-4" />
         </Button>
       ) : (
-        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        <ChevronRight className="text-muted-foreground h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
       )}
     </div>
   );
@@ -299,12 +362,12 @@ function DeckResultRow({ deck }: { deck: DeckSearchResult }) {
     >
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-sm font-medium">{deck.name}</span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {deck.commander?.name ? `${deck.commander.name} • ` : ''}
           {deck.user.name ?? 'Anonymous'}
         </span>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+      <ChevronRight className="text-muted-foreground h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
     </Link>
   );
 }
