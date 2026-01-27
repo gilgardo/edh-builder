@@ -1,3 +1,4 @@
+import { DisplayCard } from '@/types/cards';
 import type {
   ScryfallCard,
   ScryfallSearchResponse,
@@ -238,16 +239,22 @@ export async function searchCommanders(
  * Get card image URL with fallback for double-faced cards
  */
 export function getCardImageUrl(
-  card: ScryfallCard,
+  card: ScryfallCard | DisplayCard,
   size: 'small' | 'normal' | 'large' | 'png' = 'normal'
 ): string {
-  // Standard cards with image_uris
-  if (card.image_uris) {
+  // Handle DisplayCard (camelCase imageUris)
+  if ('imageUris' in card && card.imageUris) {
+    const uris = card.imageUris as Record<string, string>;
+    return uris[size] ?? uris.normal ?? 'https://cards.scryfall.io/normal/back.jpg';
+  }
+
+  // Handle ScryfallCard (snake_case image_uris)
+  if ('image_uris' in card && card.image_uris) {
     return card.image_uris[size];
   }
 
-  // Double-faced cards - use the front face
-  if (card.card_faces && card.card_faces[0]?.image_uris) {
+  // Double-faced cards - use the front face (ScryfallCard only)
+  if ('card_faces' in card && card.card_faces?.[0]?.image_uris) {
     return card.card_faces[0].image_uris[size];
   }
 

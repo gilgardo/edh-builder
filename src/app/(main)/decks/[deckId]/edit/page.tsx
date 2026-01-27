@@ -3,7 +3,7 @@
 import { use, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Search, Eye, Settings, Layers } from 'lucide-react';
+import { ArrowLeft, Search, Eye, Settings, Layers, Dices } from 'lucide-react';
 
 import { useDeck, useUpdateDeck } from '@/hooks/use-deck';
 import { useAddCardToDeck, useRemoveCardFromDeck, useUpdateDeckCard } from '@/hooks/use-deck-cards';
@@ -34,6 +34,7 @@ import type { ScryfallCard } from '@/types/scryfall.types';
 import type { DisplayCard, PreviewableCard } from '@/types/cards';
 import type { CardCategory } from '@/schemas/deck.schema';
 import { cn } from '@/lib/utils';
+import { Drawtester } from '@/components/decks/draw-test';
 
 interface PageProps {
   params: Promise<{ deckId: string }>;
@@ -54,9 +55,15 @@ export default function DeckEditPage({ params }: PageProps) {
   const { data: deckResponse, isLoading, error } = useDeck(deckId);
   const deck = deckResponse?.deck;
 
+  const [drawtesterOpen, setDrawtesterOpen] = useState(false);
+
   const nonCommanderCards = useMemo(
     () => deck?.cards.filter((card) => card.cardId !== deck.commanderId),
     [deck]
+  );
+  const mainDeckCards = useMemo(
+    () => nonCommanderCards?.filter((card) => card.category === 'MAIN'),
+    [nonCommanderCards]
   );
   const cardGroups = useMemo(
     () => groupCardsByType(nonCommanderCards, { excludeCategory: 'CONSIDERING' }),
@@ -251,6 +258,23 @@ export default function DeckEditPage({ params }: PageProps) {
                   onUpdate={updateDeck.mutate}
                   isUpdating={updateDeck.isPending}
                 />
+              </SheetContent>
+            </Sheet>
+            <Sheet open={drawtesterOpen} onOpenChange={setDrawtesterOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 md:h-9">
+                  <Dices className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Draw Test</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[70vh]">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Draw Tester</SheetTitle>
+                  <SheetDescription>
+                    Test your opening hand and draw sequence
+                  </SheetDescription>
+                </SheetHeader>
+                <Drawtester mainDeck={mainDeckCards} />
               </SheetContent>
             </Sheet>
             <Link href={`/decks/${deckId}`}>

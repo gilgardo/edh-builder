@@ -3,10 +3,9 @@
 import { useRef, useCallback, useState } from 'react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { Search, X, Plus, ChevronRight } from 'lucide-react';
+import { Search, X, Plus, ChevronRight, CheckCircle } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ManaCost } from './mana-cost';
 import { ManaFilterPillsCompact } from './mana-filter-pills';
@@ -73,7 +72,7 @@ export function CardSearchInput({
   onClear,
   cards = [],
   isLoading,
-  isAdding,
+  isAdding: _isAdding,
   placeholder = 'Search cards to add...',
   maxResults = 10,
   className,
@@ -114,13 +113,14 @@ export function CardSearchInput({
 
   const handleCardClick = useCallback(
     (card: ScryfallCard) => {
-      // Only close dropdown if not in controlled "keep open" mode
-      if (!keepDropdownOpen) {
+      // In 'add' mode, keep dropdown open so user can add more cards
+      // In 'navigate' mode or when keepDropdownOpen is false, close it
+      if (cardActionMode !== 'add' && !keepDropdownOpen) {
         setIsFocused(false);
       }
       onCardClick?.(card);
     },
-    [onCardClick, keepDropdownOpen]
+    [onCardClick, keepDropdownOpen, cardActionMode]
   );
 
   const handleCardMouseEnter = useCallback(
@@ -205,7 +205,6 @@ export function CardSearchInput({
                       key={card.id}
                       card={card}
                       actionMode={cardActionMode}
-                      isAdding={isAdding}
                       onMouseEnter={() => handleCardMouseEnter(card)}
                       onMouseLeave={handleCardMouseLeave}
                       onClick={() => handleCardClick(card)}
@@ -289,32 +288,39 @@ export function CardSearchInput({
 function CardResultRow({
   card,
   actionMode,
-  isAdding,
   onMouseEnter,
   onMouseLeave,
   onClick,
 }: {
   card: ScryfallCard;
   actionMode: 'add' | 'navigate';
-  isAdding?: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onClick: () => void;
 }) {
-  const [isPulsing, setIsPulsing] = useState(false);
+  const [clickState, setClickState] = useState<'idle' | 'clicking' | 'added'>('idle');
 
   const handleClick = () => {
-    setIsPulsing(true);
+    if (clickState !== 'idle') return; // Prevent double-clicks during animation
+
+    setClickState('clicking');
     onClick();
-    // Reset pulse state after animation completes
-    setTimeout(() => setIsPulsing(false), 200);
+
+    // Show "added" feedback briefly
+    setTimeout(() => {
+      setClickState('added');
+      // Reset to idle after showing added state
+      setTimeout(() => setClickState('idle'), 600);
+    }, 150);
   };
 
   return (
     <div
       className={cn(
-        'hover:bg-muted group flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-all',
-        isPulsing && 'scale-95 bg-primary/20'
+        'group relative flex cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-md px-2 py-1.5 transition-all duration-150',
+        clickState === 'idle' && 'hover:bg-muted',
+        clickState === 'clicking' && 'scale-[0.98] bg-primary/20',
+        clickState === 'added' && 'bg-primary/10'
       )}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -324,27 +330,41 @@ function CardResultRow({
       }}
       tabIndex={0}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      {/* Success flash overlay */}
+      {clickState === 'added' && (
+        <div className="animate-in fade-in-0 zoom-in-95 bg-primary/20 absolute inset-0 duration-200" />
+      )}
+
+      <div className="relative flex min-w-0 flex-1 items-center gap-2">
         {card.mana_cost && <ManaCost cost={card.mana_cost} size="sm" />}
-        <span className="truncate text-sm font-medium">{card.name}</span>
+        <span
+          className={cn(
+            'truncate text-sm font-medium transition-colors duration-150',
+            clickState === 'added' && 'text-primary'
+          )}
+        >
+          {card.name}
+        </span>
       </div>
       {actionMode === 'add' ? (
-        <Button
-          variant="ghost"
-          size="icon"
+        <div
           className={cn(
-            'text-primary hover:bg-primary/10 h-7 w-7 shrink-0 transition-transform',
-            isPulsing && 'scale-125'
+            'relative flex h-7 w-7 shrink-0 items-center justify-center transition-all duration-150',
+            clickState === 'clicking' && 'scale-110',
+            clickState === 'added' && 'text-primary'
           )}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleClick();
-          }}
-          disabled={isAdding}
         >
-          <Plus className="h-4 w-4" />
-        </Button>
+          {clickState === 'added' ? (
+            <CheckCircle className="h-4 w-4 animate-in zoom-in-50 duration-200" />
+          ) : (
+            <Plus
+              className={cn(
+                'h-4 w-4 transition-transform',
+                clickState === 'idle' && 'text-primary group-hover:scale-110'
+              )}
+            />
+          )}
+        </div>
       ) : (
         <ChevronRight className="text-muted-foreground h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
       )}

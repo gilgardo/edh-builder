@@ -80,9 +80,7 @@ export function groupCardsByType<T extends GroupableCard>(
     const group = groups[type];
     if (group && group.length > 0) {
       sortedGroups[type] = group.sort((a, b) =>
-        sortBy === 'name'
-          ? a.card.name.localeCompare(b.card.name)
-          : a.card.cmc - b.card.cmc
+        sortBy === 'name' ? a.card.name.localeCompare(b.card.name) : a.card.cmc - b.card.cmc
       );
     }
   }
@@ -112,9 +110,7 @@ interface ManaCurveCard {
  * Calculates mana curve data from a list of cards
  * Excludes lands from the calculation
  */
-export function calculateManaCurve(
-  cards: ManaCurveCard[] | undefined
-): Record<string, number> {
+export function calculateManaCurve(cards: ManaCurveCard[] | undefined): Record<string, number> {
   const curve: Record<string, number> = {};
 
   if (!cards) return curve;
@@ -156,4 +152,17 @@ export function getDisplayCardImageUrl(
 
   const imageUris = card.imageUris as Record<string, string> | null;
   return imageUris?.[size] ?? imageUris?.normal ?? null;
+}
+
+export function shuffleDeck(deck: DeckCard[]): DeckCard[] {
+  const shuffled = [...deck];
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[j]!;
+    shuffled[j] = temp!;
+  }
+
+  return shuffled;
 }

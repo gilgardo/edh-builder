@@ -85,10 +85,10 @@ interface ToastItemProps {
 }
 
 const toastStyles: Record<ToastType, string> = {
-  success: 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400',
-  error: 'border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400',
-  warning: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-  info: 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  success: 'border-primary/50 bg-primary/10 text-primary',
+  error: 'border-destructive/50 bg-destructive/10 text-destructive',
+  warning: 'border-secondary/50 bg-secondary/10 text-secondary-foreground',
+  info: 'border-accent/50 bg-accent/10 text-accent-foreground',
 };
 
 const toastIcons: Record<ToastType, typeof CheckCircle> = {
