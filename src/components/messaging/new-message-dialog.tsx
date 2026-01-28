@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useSendMessage } from '@/hooks/use-messages';
+import { useToast } from '@/components/ui/toast';
 
 interface NewMessageDialogProps {
   recipientId?: string;
@@ -34,27 +35,30 @@ export function NewMessageDialog({
   const [userId, setUserId] = useState(recipientId ?? '');
   const [content, setContent] = useState('');
   const sendMessage = useSendMessage();
+  const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId.trim() || !content.trim()) return;
 
-    try {
-      const message = await sendMessage.mutateAsync({
+    sendMessage.mutate(
+      {
         recipientId: userId,
         content: content.trim(),
-      });
-
-      // Navigate to the conversation
-      const conversationId = message.conversationId;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push(`/messages/${conversationId}` as any);
-      onOpenChange(false);
-      setContent('');
-      setUserId('');
-    } catch {
-      // Error handled by mutation
-    }
+      },
+      {
+        onSuccess: (message) => {
+          // Navigate to the conversation
+          const conversationId = message.conversationId;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          router.push(`/messages/${conversationId}` as any);
+          onOpenChange(false);
+          setContent('');
+          setUserId('');
+        },
+        onError: () => toast('Failed to send message', 'error'),
+      }
+    );
   };
 
   const handleClose = () => {

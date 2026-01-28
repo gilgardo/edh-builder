@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RatingStars } from './rating-stars';
 import { useCreateReview, useUpdateReview } from '@/hooks';
+import { useToast } from '@/components/ui/toast';
 import { CreateReviewSchema, type CreateReviewInput } from '@/schemas/social.schema';
 import type { DeckReviewWithUser } from '@/types/social.types';
 
@@ -22,6 +23,7 @@ interface ReviewFormProps {
 
 export function ReviewForm({ deckId, existingReview, onSuccess, onCancel }: ReviewFormProps) {
   const [rating, setRating] = useState(existingReview?.rating ?? 0);
+  const { toast } = useToast();
 
   const createReview = useCreateReview();
   const updateReview = useUpdateReview();
@@ -43,24 +45,35 @@ export function ReviewForm({ deckId, existingReview, onSuccess, onCancel }: Revi
     },
   });
 
-  const onSubmit = async (data: CreateReviewInput) => {
+  const handleSuccess = () => {
+    reset();
+    setRating(0);
+    onSuccess?.();
+  };
+
+  const onSubmit = (data: CreateReviewInput) => {
     const reviewData = { ...data, rating };
 
-    try {
-      if (isEditing && existingReview) {
-        await updateReview.mutateAsync({
+    if (isEditing && existingReview) {
+      updateReview.mutate(
+        {
           deckId,
           reviewId: existingReview.id,
           data: reviewData,
-        });
-      } else {
-        await createReview.mutateAsync({ deckId, data: reviewData });
-      }
-      reset();
-      setRating(0);
-      onSuccess?.();
-    } catch {
-      // Error handled by mutation
+        },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast('Failed to update review', 'error'),
+        }
+      );
+    } else {
+      createReview.mutate(
+        { deckId, data: reviewData },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast('Failed to submit review', 'error'),
+        }
+      );
     }
   };
 

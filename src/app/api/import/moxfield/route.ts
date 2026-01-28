@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { MoxfieldImportRequestSchema } from '@/schemas/import.schema';
 import { fetchMoxfieldDeck } from '@/services/moxfield';
+import { getCardsByIds } from '@/services/scryfall';
 
 /**
  * POST /api/import/moxfield
@@ -45,21 +46,43 @@ export async function POST(request: NextRequest) {
     // Transform to import preview format
     const { deck } = result;
 
-    // Build cards list with resolution info
-    const cards = deck.cards.map((card) => ({
-      name: card.name,
-      quantity: card.quantity,
-      resolved: !!card.scryfallId,
-      scryfallId: card.scryfallId,
-    }));
+    // Collect all Scryfall IDs to fetch
+    const scryfallIds: string[] = [];
+    if (deck.commander?.scryfallId) {
+      scryfallIds.push(deck.commander.scryfallId);
+    }
+    for (const card of deck.cards) {
+      if (card.scryfallId) {
+        scryfallIds.push(card.scryfallId);
+      }
+    }
 
+    // Fetch all Scryfall card data in batch
+    const scryfallCards = await getCardsByIds(scryfallIds);
+
+    // Build cards list with full Scryfall card data
+    const cards = deck.cards.map((card) => {
+      const scryfallCard = card.scryfallId ? scryfallCards.get(card.scryfallId) : undefined;
+      return {
+        name: card.name,
+        quantity: card.quantity,
+        resolved: !!scryfallCard,
+        scryfallId: card.scryfallId,
+        scryfallCard,
+      };
+    });
+
+    // Build commander with full Scryfall data
     const commanderCard = deck.commander
       ? {
           name: deck.commander.name,
           quantity: 1,
-          category: 'COMMANDER',
-          resolved: !!deck.commander.scryfallId,
+          category: 'COMMANDER' as const,
+          resolved: !!deck.commander.scryfallId && scryfallCards.has(deck.commander.scryfallId),
           scryfallId: deck.commander.scryfallId,
+          scryfallCard: deck.commander.scryfallId
+            ? scryfallCards.get(deck.commander.scryfallId)
+            : undefined,
         }
       : undefined;
 

@@ -17,7 +17,8 @@
       "Bash(xargs -n1 basename)",
       "mcp__filesystem__list_directory",
       "Bash(ls:*)",
-      "mcp__filesystem__directory_tree"
+      "mcp__filesystem__directory_tree",
+      "mcp__firecrawl__firecrawl_search"
     ]
   },
   "enabledMcpjsonServers": [

@@ -27,6 +27,7 @@ import {
 import { CollaborationBadge } from './collaboration-badge';
 import { InviteCollaboratorDialog } from './invite-collaborator-dialog';
 import { useCollaborators, useUpdateCollaborator, useRemoveCollaborator } from '@/hooks/use-collaborators';
+import { useToast } from '@/components/ui/toast';
 import type { DeckCollaboratorWithUser } from '@/types/social.types';
 import type { CollaboratorRole } from '@prisma/client';
 
@@ -38,6 +39,7 @@ interface CollaboratorListProps {
 export function CollaboratorList({ deckId, isOwner }: CollaboratorListProps) {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [collaboratorToRemove, setCollaboratorToRemove] = useState<DeckCollaboratorWithUser | null>(null);
+  const { toast } = useToast();
 
   const { data, isLoading } = useCollaborators(deckId);
   const updateCollaborator = useUpdateCollaborator();
@@ -45,21 +47,31 @@ export function CollaboratorList({ deckId, isOwner }: CollaboratorListProps) {
 
   const collaborators = data?.collaborators ?? [];
 
-  const handleRoleChange = async (collaborator: DeckCollaboratorWithUser, newRole: CollaboratorRole) => {
-    await updateCollaborator.mutateAsync({
-      deckId,
-      collaboratorId: collaborator.id,
-      data: { role: newRole },
-    });
+  const handleRoleChange = (collaborator: DeckCollaboratorWithUser, newRole: CollaboratorRole) => {
+    updateCollaborator.mutate(
+      {
+        deckId,
+        collaboratorId: collaborator.id,
+        data: { role: newRole },
+      },
+      {
+        onError: () => toast('Failed to update collaborator role', 'error'),
+      }
+    );
   };
 
-  const handleRemove = async () => {
+  const handleRemove = () => {
     if (!collaboratorToRemove) return;
-    await removeCollaborator.mutateAsync({
-      deckId,
-      collaboratorId: collaboratorToRemove.id,
-    });
-    setCollaboratorToRemove(null);
+    removeCollaborator.mutate(
+      {
+        deckId,
+        collaboratorId: collaboratorToRemove.id,
+      },
+      {
+        onSuccess: () => setCollaboratorToRemove(null),
+        onError: () => toast('Failed to remove collaborator', 'error'),
+      }
+    );
   };
 
   return (

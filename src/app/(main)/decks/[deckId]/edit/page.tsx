@@ -125,40 +125,71 @@ export default function DeckEditPage({ params }: PageProps) {
 
   const handleSelectPrinting = async (scryfallCard: ScryfallCard) => {
     if (!selectedCardForPrinting || !deck) return;
-    try {
-      const currentDeckCard = deck.cards.find((dc) => dc.card.id === selectedCardForPrinting.id);
-      if (!currentDeckCard) return;
 
+    const currentDeckCard = deck.cards.find((dc) => dc.card.id === selectedCardForPrinting.id);
+    if (!currentDeckCard) return;
+
+    // Store original card data for rollback
+    const originalCard = {
+      scryfallId: selectedCardForPrinting.scryfallId,
+      quantity: currentDeckCard.quantity,
+      category: currentDeckCard.category as CardCategory,
+    };
+
+    try {
+      // Step 1: Remove old printing
       await removeCard.mutateAsync({ deckId, cardId: selectedCardForPrinting.id });
-      await addCard.mutateAsync({
-        deckId,
-        scryfallCard,
-        quantity: currentDeckCard.quantity,
-        category: currentDeckCard.category as CardCategory,
-      });
+
+      try {
+        // Step 2: Add new printing
+        await addCard.mutateAsync({
+          deckId,
+          scryfallCard,
+          quantity: originalCard.quantity,
+          category: originalCard.category,
+        });
+      } catch {
+        // Add failed - rollback by re-adding the original card
+        toast('Failed to add new printing, restoring original card...', 'error');
+        try {
+          const response = await fetch(`/api/cards/${originalCard.scryfallId}`);
+          if (response.ok) {
+            const { card: originalScryfallCard } = await response.json();
+            await addCard.mutateAsync({
+              deckId,
+              scryfallCard: originalScryfallCard,
+              quantity: originalCard.quantity,
+              category: originalCard.category,
+            });
+            toast('Original card restored', 'info');
+          } else {
+            toast('Could not restore original card. Please add it manually.', 'error');
+          }
+        } catch {
+          toast('Could not restore original card. Please add it manually.', 'error');
+        }
+      }
     } catch {
       toast('Failed to change card printing', 'error');
     }
   };
 
   const handleChangeQuantity = useCallback(
-    async (card: DisplayCard, quantity: number) => {
-      try {
-        await updateCard.mutateAsync({ deckId, cardId: card.id, quantity });
-      } catch {
-        toast('Failed to change card quantity', 'error');
-      }
+    (card: DisplayCard, quantity: number) => {
+      updateCard.mutate(
+        { deckId, cardId: card.id, quantity },
+        { onError: () => toast('Failed to change card quantity', 'error') }
+      );
     },
     [updateCard, deckId, toast]
   );
 
   const handleMoveToCategory = useCallback(
-    async (card: DisplayCard, category: CardCategory) => {
-      try {
-        await updateCard.mutateAsync({ deckId, cardId: card.id, category });
-      } catch {
-        toast('Failed to move card', 'error');
-      }
+    (card: DisplayCard, category: CardCategory) => {
+      updateCard.mutate(
+        { deckId, cardId: card.id, category },
+        { onError: () => toast('Failed to move card', 'error') }
+      );
     },
     [updateCard, deckId, toast]
   );

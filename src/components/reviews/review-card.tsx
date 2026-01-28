@@ -27,6 +27,7 @@ import {
 import { RatingStars } from './rating-stars';
 import { ReviewForm } from './review-form';
 import { useDeleteReview } from '@/hooks';
+import { useToast } from '@/components/ui/toast';
 import type { DeckReviewWithUser } from '@/types/social.types';
 
 interface ReviewCardProps {
@@ -39,6 +40,7 @@ export function ReviewCard({ review, deckId, isOwnReview = false }: ReviewCardPr
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const deleteReview = useDeleteReview();
+  const { toast } = useToast();
 
   const initials = review.user.name
     ? review.user.name
@@ -49,13 +51,14 @@ export function ReviewCard({ review, deckId, isOwnReview = false }: ReviewCardPr
         .slice(0, 2)
     : review.user.username?.slice(0, 2).toUpperCase() ?? '?';
 
-  const handleDelete = async () => {
-    try {
-      await deleteReview.mutateAsync({ deckId, reviewId: review.id });
-      setShowDeleteDialog(false);
-    } catch {
-      // Error handled by mutation
-    }
+  const handleDelete = () => {
+    deleteReview.mutate(
+      { deckId, reviewId: review.id },
+      {
+        onSuccess: () => setShowDeleteDialog(false),
+        onError: () => toast('Failed to delete review', 'error'),
+      }
+    );
   };
 
   if (isEditing) {

@@ -299,3 +299,65 @@ export async function getCardPrintings(
 
   return { cards: result.data };
 }
+
+interface ScryfallCollectionResponse {
+  object: 'list';
+  not_found: Array<{ id?: string; name?: string }>;
+  data: ScryfallCard[];
+}
+
+/**
+ * Fetch multiple cards by Scryfall IDs in a single request
+ * Scryfall accepts up to 75 identifiers per request
+ */
+export async function getCardsByIds(
+  scryfallIds: string[]
+): Promise<Map<string, ScryfallCard>> {
+  const results = new Map<string, ScryfallCard>();
+
+  if (scryfallIds.length === 0) {
+    return results;
+  }
+
+  // Scryfall collection endpoint accepts max 75 cards per request
+  const BATCH_SIZE = 75;
+  const batches: string[][] = [];
+
+  for (let i = 0; i < scryfallIds.length; i += BATCH_SIZE) {
+    batches.push(scryfallIds.slice(i, i + BATCH_SIZE));
+  }
+
+  for (const batch of batches) {
+    // Rate limit between batches
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < RATE_LIMIT_MS) {
+      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_MS - timeSinceLastRequest));
+    }
+    lastRequestTime = Date.now();
+
+    const identifiers = batch.map((id) => ({ id }));
+
+    const response = await fetch(`${SCRYFALL_API_BASE}/cards/collection`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ identifiers }),
+    });
+
+    if (!response.ok) {
+      console.error('Scryfall collection fetch failed:', response.status);
+      continue;
+    }
+
+    const data: ScryfallCollectionResponse = await response.json();
+
+    for (const card of data.data) {
+      results.set(card.id, card);
+    }
+  }
+
+  return results;
+}

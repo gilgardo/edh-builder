@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useInviteCollaborator } from '@/hooks/use-collaborators';
+import { useToast } from '@/components/ui/toast';
 import { InviteCollaboratorSchema, type InviteCollaboratorInput } from '@/schemas/social.schema';
 
 interface InviteCollaboratorDialogProps {
@@ -38,6 +39,7 @@ export function InviteCollaboratorDialog({
 }: InviteCollaboratorDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const inviteCollaborator = useInviteCollaborator();
+  const { toast } = useToast();
 
   const {
     handleSubmit,
@@ -56,15 +58,18 @@ export function InviteCollaboratorDialog({
   const selectedRole = watch('role');
   const selectedUserId = watch('userId');
 
-  const onSubmit = async (data: InviteCollaboratorInput) => {
-    try {
-      await inviteCollaborator.mutateAsync({ deckId, data });
-      reset();
-      setSearchQuery('');
-      onOpenChange(false);
-    } catch {
-      // Error handled by mutation
-    }
+  const onSubmit = (data: InviteCollaboratorInput) => {
+    inviteCollaborator.mutate(
+      { deckId, data },
+      {
+        onSuccess: () => {
+          reset();
+          setSearchQuery('');
+          onOpenChange(false);
+        },
+        onError: () => toast('Failed to send invite', 'error'),
+      }
+    );
   };
 
   const handleClose = () => {

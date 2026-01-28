@@ -80,7 +80,7 @@ export function ManaFilterPills({
               aria-label={`Filter by ${color.label} mana`}
             >
               <Image
-                src={`/magic-svg/${color.value.toLowerCase()}.svg`}
+                src={`/mtg_symbols/${color.value}.svg`}
                 alt={color.label}
                 width={pixelSize}
                 height={pixelSize}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { Shuffle, Plus, RotateCcw } from 'lucide-react';
 
@@ -15,40 +15,55 @@ const TILT_MAX_DEGREES = 12;
 const CENTER_OFFSET = 0.5;
 const INITIAL_HAND_SIZE = 7;
 
+interface DrawState {
+  shuffledDeck: DeckCard[];
+  deckSource: DeckCard[] | undefined;
+  handSize: number;
+}
+
+function createInitialState(mainDeck: DeckCard[] | undefined): DrawState {
+  return {
+    shuffledDeck: mainDeck && mainDeck.length > 0 ? shuffleDeck(mainDeck) : [],
+    deckSource: mainDeck,
+    handSize: INITIAL_HAND_SIZE,
+  };
+}
+
 interface DrawtesterProps {
   mainDeck: DeckCard[] | undefined;
 }
 
 export function Drawtester({ mainDeck }: DrawtesterProps) {
-  // Use a key to force re-shuffle when mainDeck reference changes
-  const [shuffleKey, setShuffleKey] = useState(0);
-  const [handSize, setHandSize] = useState(INITIAL_HAND_SIZE);
+  // Combined state to track deck source and allow atomic updates
+  const [state, setState] = useState<DrawState>(() => createInitialState(mainDeck));
 
-  // Memoize shuffled deck - only re-shuffles when shuffleKey changes
-  const shuffledDeck = useMemo(() => {
-    if (!mainDeck || mainDeck.length === 0) return [];
-    // shuffleKey in dependency ensures new shuffle on button click
-    return shuffleDeck(mainDeck);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainDeck, shuffleKey]);
+  // Reset when mainDeck reference changes (React-recommended pattern for adjusting state based on props)
+  // This is evaluated during render, not in an effect, to avoid cascading renders
+  if (mainDeck !== state.deckSource) {
+    setState(createInitialState(mainDeck));
+  }
 
-  const hand = useMemo(() => shuffledDeck.slice(0, handSize), [shuffledDeck, handSize]);
+  const { shuffledDeck, handSize } = state;
+  const hand = shuffledDeck.slice(0, handSize);
   const remainingCards = shuffledDeck.length - handSize;
   const canDraw = remainingCards > 0;
 
   const handleShuffle = useCallback(() => {
-    setShuffleKey((k) => k + 1);
-    setHandSize(INITIAL_HAND_SIZE);
+    setState((prev) => ({
+      ...prev,
+      shuffledDeck: prev.deckSource && prev.deckSource.length > 0 ? shuffleDeck(prev.deckSource) : [],
+      handSize: INITIAL_HAND_SIZE,
+    }));
   }, []);
 
   const handleDraw = useCallback(() => {
-    if (canDraw) {
-      setHandSize((prev) => prev + 1);
-    }
-  }, [canDraw]);
+    setState((prev) =>
+      prev.shuffledDeck.length - prev.handSize > 0 ? { ...prev, handSize: prev.handSize + 1 } : prev
+    );
+  }, []);
 
   const handleReset = useCallback(() => {
-    setHandSize(INITIAL_HAND_SIZE);
+    setState((prev) => ({ ...prev, handSize: INITIAL_HAND_SIZE }));
   }, []);
 
   if (!mainDeck || mainDeck.length === 0) {

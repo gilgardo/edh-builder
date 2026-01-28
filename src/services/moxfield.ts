@@ -27,7 +27,7 @@ export interface MoxfieldError {
 }
 
 // Moxfield API base URL
-const MOXFIELD_API_BASE = 'https://api2.moxfield.com/v3';
+const MOXFIELD_API_BASE = 'https://api2.moxfield.com/v2';
 
 /**
  * Extract deck ID from various Moxfield URL formats
