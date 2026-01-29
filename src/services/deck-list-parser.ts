@@ -5,10 +5,12 @@
  * into a structured format for import.
  */
 
+import { MoxfieldCategory } from './moxfield';
+
 export interface ParsedCard {
   name: string;
   quantity: number;
-  category?: string;
+  category: MoxfieldCategory;
 }
 
 export interface ParseResult {
@@ -23,21 +25,25 @@ export interface ParseError {
   message: string;
 }
 
-// Category header patterns
-const CATEGORY_PATTERNS: { pattern: RegExp; category: string }[] = [
+// Deck group header patterns - only actual deck groups that change category
+const DECK_GROUP_PATTERNS: { pattern: RegExp; category: MoxfieldCategory }[] = [
   { pattern: /^commander:?$/i, category: 'COMMANDER' },
-  { pattern: /^creatures?\s*(\(\d+\))?:?$/i, category: 'CREATURE' },
-  { pattern: /^instants?\s*(\(\d+\))?:?$/i, category: 'INSTANT' },
-  { pattern: /^sorcery|sorceries\s*(\(\d+\))?:?$/i, category: 'SORCERY' },
-  { pattern: /^artifacts?\s*(\(\d+\))?:?$/i, category: 'ARTIFACT' },
-  { pattern: /^enchantments?\s*(\(\d+\))?:?$/i, category: 'ENCHANTMENT' },
-  { pattern: /^planeswalkers?\s*(\(\d+\))?:?$/i, category: 'PLANESWALKER' },
-  { pattern: /^lands?\s*(\(\d+\))?:?$/i, category: 'LAND' },
   { pattern: /^sideboard:?$/i, category: 'SIDEBOARD' },
   { pattern: /^considering:?$/i, category: 'CONSIDERING' },
   { pattern: /^maybeboard:?$/i, category: 'CONSIDERING' },
   { pattern: /^main\s*deck:?$/i, category: 'MAIN' },
   { pattern: /^deck:?$/i, category: 'MAIN' },
+];
+
+// Card type headers - these are recognized but don't change the deck group
+const CARD_TYPE_PATTERNS: RegExp[] = [
+  /^creatures?\s*(\(\d+\))?:?$/i,
+  /^instants?\s*(\(\d+\))?:?$/i,
+  /^sorcery|sorceries\s*(\(\d+\))?:?$/i,
+  /^artifacts?\s*(\(\d+\))?:?$/i,
+  /^enchantments?\s*(\(\d+\))?:?$/i,
+  /^planeswalkers?\s*(\(\d+\))?:?$/i,
+  /^lands?\s*(\(\d+\))?:?$/i,
 ];
 
 // Comment patterns
@@ -61,15 +67,26 @@ function isComment(line: string): boolean {
 }
 
 /**
- * Check if a line is a category header and return the category
+ * Check if a line is a deck group header and return the category
+ * Returns the category for deck groups (MAIN, SIDEBOARD, etc.)
+ * Returns 'skip' for card type headers (Creatures, Instants, etc.) - recognized but doesn't change category
+ * Returns null for non-header lines
  */
-function getCategoryFromHeader(line: string): string | null {
+function getCategoryFromHeader(line: string): MoxfieldCategory | 'skip' | null {
   // Also check for "// Category" format
   const cleanLine = line.replace(/^\/\/\s*/, '').trim();
 
-  for (const { pattern, category } of CATEGORY_PATTERNS) {
+  // Check deck group patterns first
+  for (const { pattern, category } of DECK_GROUP_PATTERNS) {
     if (pattern.test(cleanLine)) {
       return category;
+    }
+  }
+
+  // Check card type patterns - recognized as headers but don't change category
+  for (const pattern of CARD_TYPE_PATTERNS) {
+    if (pattern.test(cleanLine)) {
+      return 'skip';
     }
   }
 
@@ -152,7 +169,7 @@ export function parseDeckList(text: string): ParseResult {
   const cards: ParsedCard[] = [];
   const errors: ParseError[] = [];
   let commander: ParsedCard | undefined;
-  let currentCategory: string | undefined;
+  let currentCategory: MoxfieldCategory = 'MAIN';
 
   for (let i = 0; i < lines.length; i++) {
     const lineNumber = i + 1;
@@ -167,7 +184,10 @@ export function parseDeckList(text: string): ParseResult {
     // Check for category headers (including "// Category" format)
     const category = getCategoryFromHeader(line);
     if (category) {
-      currentCategory = category;
+      // 'skip' means it's a card type header - recognized but doesn't change category
+      if (category !== 'skip') {
+        currentCategory = category;
+      }
       continue;
     }
 
@@ -196,15 +216,9 @@ export function parseDeckList(text: string): ParseResult {
     };
 
     // If this is in the commander category, set it as commander
-    if (currentCategory === 'COMMANDER') {
-      if (!commander) {
-        commander = card;
-      }
-      // Also add to cards list for completeness
-      cards.push(card);
-    } else {
-      cards.push(card);
-    }
+    if (currentCategory === 'COMMANDER') commander = card;
+
+    cards.push(card);
   }
 
   return { cards, commander, errors };

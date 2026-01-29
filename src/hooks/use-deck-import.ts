@@ -110,16 +110,7 @@ async function importCardsWithProgress(options: ImportDeckOptions): Promise<{
     onProgress?.(progress);
 
     try {
-      const category: CardCategory =
-        card.category === 'COMMANDER'
-          ? 'COMMANDER'
-          : card.category === 'SIDEBOARD'
-            ? 'SIDEBOARD'
-            : card.category === 'CONSIDERING'
-              ? 'CONSIDERING'
-              : 'MAIN';
-
-      await addCardToDeck(deckId, card.scryfallCard as ScryfallCard, card.quantity, category);
+      await addCardToDeck(deckId, card.scryfallCard as ScryfallCard, card.quantity, card.category);
       imported++;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

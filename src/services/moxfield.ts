@@ -5,10 +5,13 @@
  * into our internal format.
  */
 
+export type MoxfieldCategory = 'COMMANDER' | 'MAIN' | 'SIDEBOARD' | 'CONSIDERING';
+
 export interface MoxfieldCard {
   name: string;
   quantity: number;
   scryfallId?: string;
+  category: MoxfieldCategory;
 }
 
 export interface MoxfieldDeck {
@@ -92,13 +95,14 @@ interface MoxfieldApiResponse {
 /**
  * Transform Moxfield API board to our card format
  */
-function transformBoard(board: MoxfieldApiBoard | undefined): MoxfieldCard[] {
+function transformBoard(board: MoxfieldApiBoard | undefined, category: MoxfieldCategory): MoxfieldCard[] {
   if (!board) return [];
 
   return Object.values(board).map((entry) => ({
     name: entry.card.name,
     quantity: entry.quantity,
     scryfallId: entry.card.scryfall_id,
+    category,
   }));
 }
 
@@ -168,15 +172,14 @@ export async function fetchMoxfieldDeck(
     const data: MoxfieldApiResponse = await response.json();
 
     // Transform commanders
-    const commanders = transformBoard(data.commanders);
+    const commanders = transformBoard(data.commanders, 'COMMANDER');
     const commander = commanders.length > 0 ? commanders[0] : undefined;
 
-    // Combine all cards
+    // Combine all cards (excluding commanders which are handled separately)
     const cards: MoxfieldCard[] = [
-      ...commanders,
-      ...transformBoard(data.mainboard),
-      ...transformBoard(data.sideboard),
-      ...transformBoard(data.maybeboard),
+      ...transformBoard(data.mainboard, 'MAIN'),
+      ...transformBoard(data.sideboard, 'SIDEBOARD'),
+      ...transformBoard(data.maybeboard, 'CONSIDERING'),
     ];
 
     const deck: MoxfieldDeck = {

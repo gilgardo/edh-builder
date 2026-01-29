@@ -185,6 +185,7 @@ export async function POST(request: NextRequest) {
     for (const parsedCard of parseResult.cards) {
       const scryfallCard = resolvedCards.get(parsedCard.name.toLowerCase());
 
+      // Map parsed category to valid CardResolution category, defaulting to MAIN
       if (scryfallCard) {
         cards.push({
           name: scryfallCard.name, // Use canonical name from Scryfall

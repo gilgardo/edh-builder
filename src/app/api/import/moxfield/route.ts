@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       return {
         name: card.name,
         quantity: card.quantity,
+        category: card.category,
         resolved: !!scryfallCard,
         scryfallId: card.scryfallId,
         scryfallCard,

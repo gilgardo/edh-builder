@@ -38,13 +38,13 @@ export function ImportPreviewComponent({
   const unresolvedCount = cards.filter((c) => !c.resolved).length + (commander && !commander.resolved ? 1 : 0);
   const totalCards = cards.reduce((sum, c) => sum + c.quantity, 0) + (commander ? 1 : 0);
 
-  const handleRemoveCard = (cardName: string) => {
-    setCards((prev) => prev.filter((c) => c.name !== cardName));
+  const handleRemoveCard = (cardName: string, category: string) => {
+    setCards((prev) => prev.filter((c) => !(c.name === cardName && c.category === category)));
   };
 
-  const handleUpdateCardName = (oldName: string, newName: string) => {
+  const handleUpdateCardName = (oldName: string, newName: string, category: string) => {
     setCards((prev) =>
-      prev.map((c) => (c.name === oldName ? { ...c, name: newName, resolved: false } : c))
+      prev.map((c) => (c.name === oldName && c.category === category ? { ...c, name: newName, resolved: false } : c))
     );
     setEditingCard(null);
   };
@@ -125,13 +125,13 @@ export function ImportPreviewComponent({
             <div className="space-y-1">
               {categoryCards.map((card) => (
                 <CardRow
-                  key={card.name}
+                  key={`${category}-${card.name}`}
                   card={card}
-                  isEditing={editingCard === card.name}
-                  onEdit={() => setEditingCard(card.name)}
+                  isEditing={editingCard === `${category}-${card.name}`}
+                  onEdit={() => setEditingCard(`${category}-${card.name}`)}
                   onCancelEdit={() => setEditingCard(null)}
-                  onUpdateName={(newName) => handleUpdateCardName(card.name, newName)}
-                  onRemove={() => handleRemoveCard(card.name)}
+                  onUpdateName={(newName) => handleUpdateCardName(card.name, newName, category)}
+                  onRemove={() => handleRemoveCard(card.name, category)}
                 />
               ))}
             </div>

@@ -87,14 +87,14 @@ export const ParseImportRequestSchema = z.object({
 export const MoxfieldImportRequestSchema = z.object({
   url: MoxfieldUrlSchema,
 });
-
+export const MoxfieldCategoryEnum = z.enum(['COMMANDER', 'MAIN', 'SIDEBOARD', 'CONSIDERING']);
 /**
  * Card resolution result
  */
 export const CardResolutionSchema = z.object({
   name: z.string(),
   quantity: z.number().int().min(1),
-  category: z.string().optional(),
+  category: MoxfieldCategoryEnum,
   resolved: z.boolean(),
   scryfallId: z.string().optional(),
   scryfallCard: z.any().optional(),
