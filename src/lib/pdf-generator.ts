@@ -16,13 +16,49 @@ import {
   MARGIN_X_MM,
   MARGIN_Y_MM,
 } from '@/types/pdf.types';
-import { batchCacheImagesWithBackFaces } from '@/services/image-cache';
 
 interface ImageUris {
   small?: string;
   normal?: string;
   large?: string;
   png?: string;
+}
+
+type ImageSize = 'small' | 'normal' | 'large';
+
+interface BatchImageResponse {
+  images: Record<string, { front: string; back?: string }>;
+}
+
+/**
+ * Batch cache images via API endpoint (server-side Prisma)
+ */
+async function batchCacheImagesViaApi(
+  scryfallIds: string[],
+  size: ImageSize = 'large'
+): Promise<Map<string, { front: string; back?: string }>> {
+  const response = await fetch('/api/images/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scryfallIds,
+      size,
+      includeBackFaces: true,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to batch cache images: ${response.status}`);
+  }
+
+  const data: BatchImageResponse = await response.json();
+  const result = new Map<string, { front: string; back?: string }>();
+
+  for (const [id, urls] of Object.entries(data.images)) {
+    result.set(id, urls);
+  }
+
+  return result;
 }
 
 /**
@@ -125,20 +161,16 @@ async function prepareCardsForPdf(
     message: 'Caching card images...',
   });
 
-  // Batch cache all images (uploads to R2 if not cached)
+  // Batch cache all images via API (server-side Prisma)
   // This is much faster than fetching one-by-one from Scryfall
-  const cachedImages = await batchCacheImagesWithBackFaces(
-    uniqueScryfallIds,
-    'large',
-    (current, total) => {
-      onProgress({
-        phase: 'loading',
-        current,
-        total,
-        message: `Caching images: ${current}/${total}`,
-      });
-    }
-  );
+  const cachedImages = await batchCacheImagesViaApi(uniqueScryfallIds, 'large');
+
+  onProgress({
+    phase: 'loading',
+    current: uniqueScryfallIds.length,
+    total: uniqueScryfallIds.length,
+    message: `Cached ${uniqueScryfallIds.length} images`,
+  });
 
   // Build result using cached URLs
   onProgress({

@@ -95,23 +95,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Update deck's color identity based on cards
+    // Update deck's color identity and avgCmc based on cards
     const allDeckCards = await prisma.deckCard.findMany({
       where: { deckId },
       include: { card: true },
     });
 
     const colorIdentity = new Set<string>();
-    allDeckCards.forEach((dc: { card: { colorIdentity: string | null } }) => {
+    let totalCmc = 0;
+    let totalNonLandCards = 0;
+
+    allDeckCards.forEach((dc: { quantity: number; card: { colorIdentity: string | null; cmc: number; typeLine: string } }) => {
       // colorIdentity is stored as comma-separated string in Card
       if (dc.card.colorIdentity) {
         dc.card.colorIdentity.split(',').forEach((c: string) => colorIdentity.add(c.trim()));
       }
+      // Calculate avgCmc (excluding lands)
+      if (!dc.card.typeLine.toLowerCase().includes('land')) {
+        totalCmc += dc.card.cmc * dc.quantity;
+        totalNonLandCards += dc.quantity;
+      }
     });
+
+    const avgCmc = totalNonLandCards > 0 ? totalCmc / totalNonLandCards : null;
 
     await prisma.deck.update({
       where: { id: deckId },
-      data: { colorIdentity: Array.from(colorIdentity) },
+      data: {
+        colorIdentity: Array.from(colorIdentity),
+        avgCmc,
+      },
     });
 
     return NextResponse.json({ deckCard }, { status: 201 });
@@ -180,6 +193,31 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Recalculate avgCmc if quantity changed
+    if (quantity !== undefined) {
+      const allDeckCards = await prisma.deckCard.findMany({
+        where: { deckId },
+        include: { card: true },
+      });
+
+      let totalCmc = 0;
+      let totalNonLandCards = 0;
+
+      allDeckCards.forEach((dc: { quantity: number; card: { cmc: number; typeLine: string } }) => {
+        if (!dc.card.typeLine.toLowerCase().includes('land')) {
+          totalCmc += dc.card.cmc * dc.quantity;
+          totalNonLandCards += dc.quantity;
+        }
+      });
+
+      const avgCmc = totalNonLandCards > 0 ? totalCmc / totalNonLandCards : null;
+
+      await prisma.deck.update({
+        where: { id: deckId },
+        data: { avgCmc },
+      });
+    }
+
     return NextResponse.json({ deckCard });
   } catch (error) {
     console.error('Update deck card error:', error);
@@ -225,23 +263,36 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Update deck's color identity
+    // Update deck's color identity and avgCmc
     const remainingDeckCards = await prisma.deckCard.findMany({
       where: { deckId },
       include: { card: true },
     });
 
     const colorIdentity = new Set<string>();
-    remainingDeckCards.forEach((dc: { card: { colorIdentity: string | null } }) => {
+    let totalCmc = 0;
+    let totalNonLandCards = 0;
+
+    remainingDeckCards.forEach((dc: { quantity: number; card: { colorIdentity: string | null; cmc: number; typeLine: string } }) => {
       // colorIdentity is stored as comma-separated string in Card
       if (dc.card.colorIdentity) {
         dc.card.colorIdentity.split(',').forEach((c: string) => colorIdentity.add(c.trim()));
       }
+      // Calculate avgCmc (excluding lands)
+      if (!dc.card.typeLine.toLowerCase().includes('land')) {
+        totalCmc += dc.card.cmc * dc.quantity;
+        totalNonLandCards += dc.quantity;
+      }
     });
+
+    const avgCmc = totalNonLandCards > 0 ? totalCmc / totalNonLandCards : null;
 
     await prisma.deck.update({
       where: { id: deckId },
-      data: { colorIdentity: Array.from(colorIdentity) },
+      data: {
+        colorIdentity: Array.from(colorIdentity),
+        avgCmc,
+      },
     });
 
     return NextResponse.json({ success: true });

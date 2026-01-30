@@ -154,6 +154,49 @@ export function getDisplayCardImageUrl(
   return imageUris?.[size] ?? imageUris?.normal ?? null;
 }
 
+interface AverageCmcResult {
+  /** Average CMC excluding lands (standard metric) */
+  withoutLands: number;
+  /** Average CMC including all cards */
+  withLands: number;
+}
+
+/**
+ * Calculates average CMC both with and without lands
+ * Returns both values for comprehensive deck analysis
+ */
+export function calculateAverageCmc(
+  cards: Array<{ quantity: number; category?: string; card: { cmc: number; typeLine: string } }> | undefined,
+  excludeCategory?: string
+): AverageCmcResult {
+  if (!cards || cards.length === 0) return { withoutLands: 0, withLands: 0 };
+
+  let totalCmcAll = 0;
+  let totalCountAll = 0;
+  let totalCmcNonLand = 0;
+  let totalCountNonLand = 0;
+
+  for (const deckCard of cards) {
+    // Skip excluded categories
+    if (excludeCategory && deckCard.category === excludeCategory) continue;
+
+    const isLand = deckCard.card.typeLine.toLowerCase().includes('land');
+
+    totalCmcAll += deckCard.card.cmc * deckCard.quantity;
+    totalCountAll += deckCard.quantity;
+
+    if (!isLand) {
+      totalCmcNonLand += deckCard.card.cmc * deckCard.quantity;
+      totalCountNonLand += deckCard.quantity;
+    }
+  }
+
+  return {
+    withoutLands: totalCountNonLand > 0 ? totalCmcNonLand / totalCountNonLand : 0,
+    withLands: totalCountAll > 0 ? totalCmcAll / totalCountAll : 0,
+  };
+}
+
 export function shuffleDeck(deck: DeckCard[]): DeckCard[] {
   const shuffled = [...deck];
 

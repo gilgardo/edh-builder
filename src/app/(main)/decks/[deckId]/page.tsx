@@ -38,12 +38,21 @@ import { useToast } from '@/components/ui/toast';
 import { Container } from '@/components/layout/container';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
+import { CommanderCard } from '@/components/cards/commander-card';
+import { GroupedCardImageGrid } from '@/components/cards/card-image-grid';
 import { DeckViewSkeleton } from '@/components/decks/deck-view-skeleton';
 import { PdfExportButton } from '@/components/decks/pdf-export-button';
 import { NewMessageDialog } from '@/components/messaging';
 import { CollaboratorList } from '@/components/collaboration';
 import { ReviewList } from '@/components/reviews';
-import { groupCardsByType, calculateManaCurve, calculateTotalCards } from '@/lib/deck-utils';
+import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
+import { BackToTop } from '@/components/ui/back-to-top';
+import {
+  groupCardsByType,
+  calculateManaCurve,
+  calculateTotalCards,
+  calculateAverageCmc,
+} from '@/lib/deck-utils';
 import { cn } from '@/lib/utils';
 import type { DeckCard, Card as PrismaCard } from '@prisma/client';
 
@@ -65,6 +74,9 @@ export default function DeckViewPage({ params }: PageProps) {
   // Dialog state for messaging
   const [showMessageDialog, setShowMessageDialog] = useState(false);
 
+  // View mode state (text list vs image grid)
+  const [viewMode, setViewMode] = useState<ViewMode>('text');
+
   // Memoize computed values - must be called before any early returns (rules of hooks)
   const deck = data?.deck;
   const isLiked = data?.isLiked ?? false;
@@ -72,12 +84,10 @@ export default function DeckViewPage({ params }: PageProps) {
     if (!deck) return {};
     return groupCardsByType(deck.cards, { sortBy: 'name' });
   }, [deck]);
-  const manaCurve = useMemo(
-    () => (deck ? calculateManaCurve(deck.cards) : {}),
-    [deck]
-  );
-  const totalCards = useMemo(
-    () => (deck ? calculateTotalCards(deck.cards) : 0),
+  const manaCurve = useMemo(() => (deck ? calculateManaCurve(deck.cards) : {}), [deck]);
+  const totalCards = useMemo(() => (deck ? calculateTotalCards(deck.cards) : 0), [deck]);
+  const avgCmc = useMemo(
+    () => (deck ? calculateAverageCmc(deck.cards) : { withoutLands: 0, withLands: 0 }),
     [deck]
   );
 
@@ -162,10 +172,10 @@ export default function DeckViewPage({ params }: PageProps) {
           </Link>
         </div>
 
-        {/* Hero Section */}
-        <div className="from-primary/20 via-background to-background relative mb-8 overflow-hidden rounded-xl bg-linear-to-br">
+        {/* Hero Section with background image */}
+        <div className="relative mb-8 overflow-hidden rounded-xl">
           {commanderImage && (
-            <div className="absolute inset-0 opacity-20">
+            <div className="absolute inset-0 opacity-15">
               <Image src={commanderImage} alt="" fill className="object-cover" />
             </div>
           )}
@@ -200,136 +210,210 @@ export default function DeckViewPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* Owner Info & Actions */}
-              <div className="flex flex-col gap-4">
-                <Link
-                  href={`/users/${deck.userId}`}
-                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={deck.user.image ?? undefined} />
-                    <AvatarFallback>{deck.user.name?.charAt(0) ?? 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium hover:underline">{deck.user.name}</p>
-                    <p className="text-muted-foreground text-sm">
-                      Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}
+              {/* Owner Info */}
+              <Link
+                href={`/users/${deck.userId}`}
+                className="flex items-center gap-3 transition-opacity hover:opacity-80"
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={deck.user.image ?? undefined} />
+                  <AvatarFallback>{deck.user.name?.charAt(0) ?? 'U'}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium hover:underline">{deck.user.name}</p>
+                  <p className="text-muted-foreground text-sm">
+                    Updated {formatDistanceToNow(updatedAt, { addSuffix: true })}
+                  </p>
+                </div>
+              </Link>
+            </div>
+
+            {/* Stats Row */}
+            <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="bg-background/60 flex items-center gap-3 rounded-lg p-3 shadow-sm backdrop-blur-sm">
+                <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                  <Layers className="text-primary h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold sm:text-xl">{totalCards}</p>
+                  <p className="text-muted-foreground text-xs">Total Cards</p>
+                </div>
+              </div>
+              <div className="bg-background/60 flex items-center gap-3 rounded-lg p-3 shadow-sm backdrop-blur-sm">
+                <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                  <span className="text-primary text-sm font-bold">⊘</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-1.5">
+                    <p className="text-lg font-bold sm:text-xl">{avgCmc.withoutLands.toFixed(2)}</p>
+                    <p className="text-muted-foreground text-[10px]">
+                      ({avgCmc.withLands.toFixed(2)})
                     </p>
                   </div>
-                </Link>
-
-                <div className="flex flex-wrap gap-2">
-                  {isOwner && (
-                    <>
-                      <Link href={`/decks/${deckId}/edit`}>
-                        <Button variant="outline" size="sm">
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
-                      </Link>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Delete Deck</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete &quot;{deck.name}&quot;? This action
-                              cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button
-                              variant="destructive"
-                              onClick={handleDelete}
-                              disabled={deleteDeck.isPending}
-                            >
-                              {deleteDeck.isPending ? 'Deleting...' : 'Delete Deck'}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </>
-                  )}
-                  {!isOwner && session?.user && (
-                    <Button variant="outline" size="sm" onClick={() => setShowMessageDialog(true)}>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Message
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={handleCopyUrl}>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Share
-                  </Button>
-                  <PdfExportButton
-                    deckName={deck.name}
-                    commander={deck.commander}
-                    cards={deck.cards}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleToggleLike}
-                    disabled={isLikePending}
-                  >
-                    <Heart className={cn('h-4 w-4', isLiked && 'fill-red-500 text-red-500')} />
-                    <span className="ml-2">{deck.favorites.length}</span>
-                  </Button>
+                  <p className="text-muted-foreground text-xs">Avg. CMC</p>
+                </div>
+              </div>
+              <div className="bg-background/60 flex items-center gap-3 rounded-lg p-3 shadow-sm backdrop-blur-sm">
+                <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                  <Heart className="text-primary h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold sm:text-xl">{deck.favorites.length}</p>
+                  <p className="text-muted-foreground text-xs">Likes</p>
+                </div>
+              </div>
+              <div className="bg-background/60 flex items-center gap-3 rounded-lg p-3 shadow-sm backdrop-blur-sm">
+                <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                  <Calendar className="text-primary h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-bold sm:text-xl">
+                    {formatDistanceToNow(updatedAt)}
+                  </p>
+                  <p className="text-muted-foreground text-xs">Last Updated</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
-                <Layers className="text-primary h-5 w-5" />
+        {/* Quick Actions - separate section with image only inside pill */}
+        <div className="mb-8 flex justify-center">
+          <div className="relative overflow-hidden rounded-full">
+            {/* Background image only inside the pill */}
+            {commanderImage && (
+              <div className="absolute inset-0 opacity-25">
+                <Image src={commanderImage} alt="" fill className="object-cover object-bottom" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{totalCards}</p>
-                <p className="text-muted-foreground text-sm">Total Cards</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
-                <span className="text-primary text-lg font-bold">⊘</span>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{deck.avgCmc?.toFixed(2) ?? '—'}</p>
-                <p className="text-muted-foreground text-sm">Avg. CMC</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
-                <Heart className="text-primary h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{deck.favorites.length}</p>
-                <p className="text-muted-foreground text-sm">Likes</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
-                <Calendar className="text-primary h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatDistanceToNow(updatedAt)}</p>
-                <p className="text-muted-foreground text-sm">Last Updated</p>
-              </div>
-            </CardContent>
-          </Card>
+            )}
+            <div className="relative flex items-center gap-3 px-10 py-2 backdrop-blur-sm">
+              {isOwner && (
+                <>
+                  <Link href={`/decks/${deckId}/edit`}>
+                    <button
+                      className={cn(
+                        'flex h-10 w-10 items-center justify-center rounded-full',
+                        'bg-primary text-primary-foreground',
+                        'shadow-primary/25 shadow-md',
+                        'transition-all duration-200',
+                        'hover:shadow-primary/30 hover:scale-110 hover:shadow-lg',
+                        'active:scale-95 active:shadow-sm',
+                        'focus-visible:ring-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                      )}
+                      aria-label="Edit deck"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  </Link>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        className={cn(
+                          'flex h-10 w-10 items-center justify-center rounded-full',
+                          'bg-destructive/10 text-destructive',
+                          'shadow-destructive/10 shadow-md',
+                          'transition-all duration-200',
+                          'hover:bg-destructive/20 hover:shadow-destructive/20 hover:scale-110 hover:shadow-lg',
+                          'active:scale-95 active:shadow-sm',
+                          'focus-visible:ring-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                        )}
+                        aria-label="Delete deck"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Delete Deck</DialogTitle>
+                        <DialogDescription>
+                          Are you sure you want to delete &quot;{deck.name}&quot;? This action
+                          cannot be undone.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button
+                          variant="destructive"
+                          onClick={handleDelete}
+                          disabled={deleteDeck.isPending}
+                        >
+                          {deleteDeck.isPending ? 'Deleting...' : 'Delete Deck'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+              {!isOwner && session?.user && (
+                <button
+                  onClick={() => setShowMessageDialog(true)}
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-full',
+                    'bg-primary text-primary-foreground',
+                    'shadow-primary/25 shadow-md',
+                    'transition-all duration-200',
+                    'hover:shadow-primary/30 hover:scale-110 hover:shadow-lg',
+                    'active:scale-95 active:shadow-sm',
+                    'focus-visible:ring-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                  )}
+                  aria-label="Message owner"
+                >
+                  <Mail className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                onClick={handleCopyUrl}
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-full',
+                  'bg-primary text-primary-foreground',
+                  'shadow-primary/25 shadow-md',
+                  'transition-all duration-200',
+                  'hover:shadow-primary/30 hover:scale-110 hover:shadow-lg',
+                  'active:scale-95 active:shadow-sm',
+                  'focus-visible:ring-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                )}
+                aria-label="Share deck"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+              <PdfExportButton
+                deckName={deck.name}
+                commander={deck.commander}
+                cards={deck.cards}
+                iconOnly
+                variant="default"
+                className={cn(
+                  'h-10 w-10 rounded-full',
+                  'bg-primary text-primary-foreground',
+                  'shadow-primary/25 shadow-md',
+                  'transition-all duration-200',
+                  'hover:shadow-primary/30 hover:scale-110 hover:shadow-lg',
+                  'active:scale-95 active:shadow-sm'
+                )}
+              />
+              <button
+                onClick={handleToggleLike}
+                disabled={isLikePending}
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-full',
+                  'transition-all duration-200',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                  isLiked
+                    ? 'bg-red-500 text-white shadow-md shadow-red-500/25 hover:scale-110 hover:shadow-lg hover:shadow-red-500/30 focus-visible:ring-red-500'
+                    : 'bg-primary text-primary-foreground shadow-primary/25 hover:shadow-primary/30 focus-visible:ring-primary shadow-md hover:scale-110 hover:shadow-lg',
+                  'active:scale-95 active:shadow-sm',
+                  isLikePending && 'cursor-not-allowed opacity-50'
+                )}
+                aria-label={isLiked ? 'Unlike deck' : 'Like deck'}
+              >
+                <Heart className={cn('h-4 w-4', isLiked && 'fill-current')} />
+              </button>
+              {deck.favorites.length > 0 && (
+                <span className="text-foreground/70 text-sm font-medium">
+                  {deck.favorites.length}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
@@ -338,69 +422,74 @@ export default function DeckViewPage({ params }: PageProps) {
             {/* Commander Section */}
             {deck.commander && (
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle>Commander</CardTitle>
                 </CardHeader>
-                <CardContent className="flex gap-4">
-                  {commanderImageUris?.normal && (
-                    <div className="relative aspect-488/680 w-32 overflow-hidden rounded-lg">
-                      <Image
-                        src={commanderImageUris.normal}
-                        alt={deck.commander.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold">{deck.commander.name}</h3>
-                    <p className="text-muted-foreground text-sm">{deck.commander.typeLine}</p>
-                    {deck.commander.manaCost && (
-                      <div className="mt-2">
-                        <ManaCost cost={deck.commander.manaCost} />
-                      </div>
-                    )}
-                    {deck.commander.oracleText && (
-                      <p className="mt-2 text-sm whitespace-pre-line">
-                        {deck.commander.oracleText}
-                      </p>
-                    )}
-                  </div>
+                <CardContent className="p-4 pt-0">
+                  <CommanderCard
+                    commander={{
+                      name: deck.commander.name,
+                      typeLine: deck.commander.typeLine,
+                      manaCost: deck.commander.manaCost,
+                      oracleText: deck.commander.oracleText,
+                      imageUris: deck.commander.imageUris,
+                    }}
+                    variant="full"
+                    className="border-0 p-0"
+                  />
                 </CardContent>
               </Card>
             )}
 
-            {/* Card List by Type */}
-            {Object.entries(cardGroups).map(([type, cards]) => (
-              <Card key={type}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{type}</span>
-                    <Badge variant="secondary">
-                      {cards.reduce((acc, c) => acc + c.quantity, 0)}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-1">
-                    {cards.map((deckCard) => (
-                      <li
-                        key={deckCard.card.name}
-                        className="hover:bg-muted/50 flex items-center justify-between rounded px-2 py-1 text-sm"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-muted-foreground w-4">{deckCard.quantity}x</span>
-                          <span>{deckCard.card.name}</span>
-                        </span>
-                        {deckCard.card.manaCost && (
-                          <ManaCost cost={deckCard.card.manaCost} size="sm" />
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Card List Header with View Toggle */}
+            {deck.cards.length > 0 && (
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Card List</h2>
+                <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+              </div>
+            )}
+
+            {/* Card List - Text View */}
+            {viewMode === 'text' &&
+              Object.entries(cardGroups).map(([type, cards]) => (
+                <Card key={type}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span>{type}</span>
+                      <Badge variant="secondary">
+                        {cards.reduce((acc, c) => acc + c.quantity, 0)}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ul className="space-y-1">
+                      {cards.map((deckCard) => (
+                        <li
+                          key={deckCard.card.name}
+                          className="hover:bg-muted/50 flex items-center justify-between rounded px-2 py-1.5 text-sm transition-colors"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="text-muted-foreground w-5 shrink-0 text-right">
+                              {deckCard.quantity}x
+                            </span>
+                            <span className="truncate">{deckCard.card.name}</span>
+                          </span>
+                          {deckCard.card.manaCost && (
+                            <div className="ml-2 shrink-0">
+                              <ManaCost cost={deckCard.card.manaCost} size="sm" />
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+
+            {/* Card List - Image View */}
+            {viewMode === 'image' && Object.keys(cardGroups).length > 0 && (
+              <GroupedCardImageGrid cardGroups={cardGroups} />
+            )}
 
             {deck.cards.length === 0 && (
               <Card>
@@ -502,6 +591,9 @@ export default function DeckViewPage({ params }: PageProps) {
           onOpenChange={setShowMessageDialog}
         />
       </Container>
+
+      {/* Back to Top */}
+      <BackToTop />
     </div>
   );
 }

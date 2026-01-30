@@ -44,6 +44,7 @@ export interface Commander {
   name: string;
   typeLine: string;
   manaCost: string | null;
+  oracleText?: string | null;
   imageUris: unknown;
 }
 
