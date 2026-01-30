@@ -1,19 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCard } from '@/services/scryfall';
+import { getCard as getScryfallCard } from '@/services/scryfall';
+import { getCard as getCachedCard } from '@/services/card-cache';
 
 interface RouteParams {
   params: Promise<{ scryfallId: string }>;
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+/**
+ * Get a single card by Scryfall ID
+ *
+ * Query params:
+ * - format: 'scryfall' (default) | 'cached' - Response format
+ *   - 'scryfall': Returns Scryfall API format (snake_case, more fields)
+ *   - 'cached': Returns cached format (camelCase, stored in DB)
+ */
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { scryfallId } = await params;
+    const format = request.nextUrl.searchParams.get('format') || 'scryfall';
 
     if (!scryfallId) {
       return NextResponse.json({ error: 'Card ID is required' }, { status: 400 });
     }
 
-    const card = await getCard(scryfallId);
+    let card;
+    if (format === 'cached') card = await getCachedCard(scryfallId);
+
+    // Default: Scryfall format (backward compatible)
+    card = card ? card : await getScryfallCard(scryfallId);
 
     if (!card) {
       return NextResponse.json({ error: 'Card not found' }, { status: 404 });

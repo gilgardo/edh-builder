@@ -135,6 +135,22 @@ model Card {
   setName String     @map("set_name")
   rarity  CardRarity
 
+  // Caching metadata
+  cachedAt      DateTime  @default(now()) @map("cached_at")
+  imageCachedAt DateTime? @map("image_cached_at")
+
+  // Cached image URLs (Cloudflare R2)
+  cachedImageSmall  String? @map("cached_image_small")
+  cachedImageNormal String? @map("cached_image_normal")
+  cachedImageLarge  String? @map("cached_image_large")
+
+  // Double-faced card support
+  hasBackFace           Boolean @default(false) @map("has_back_face")
+  backFaceImageUris     Json?   @map("back_face_image_uris")
+  cachedBackImageSmall  String? @map("cached_back_image_small")
+  cachedBackImageNormal String? @map("cached_back_image_normal")
+  cachedBackImageLarge  String? @map("cached_back_image_large")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -147,6 +163,7 @@ model Card {
   @@index([name])
   @@index([scryfallId])
   @@index([isLegalCommander])
+  @@index([cachedAt])
   @@map("cards")
 }
 

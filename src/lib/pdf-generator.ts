@@ -16,53 +16,13 @@ import {
   MARGIN_X_MM,
   MARGIN_Y_MM,
 } from '@/types/pdf.types';
+import { batchCacheImagesWithBackFaces } from '@/services/image-cache';
 
 interface ImageUris {
   small?: string;
   normal?: string;
   large?: string;
   png?: string;
-}
-
-interface CardFace {
-  name: string;
-  image_uris?: ImageUris;
-}
-
-interface ScryfallCardData {
-  layout: string;
-  card_faces?: CardFace[];
-  image_uris?: ImageUris;
-}
-
-/**
- * Layouts that have double-faced cards requiring both sides to be printed
- */
-const DOUBLE_FACED_LAYOUTS = [
-  'transform',
-  'modal_dfc',
-  'reversible_card',
-  'double_faced_token',
-];
-
-/**
- * Fetch card data from Scryfall to get full card info including faces
- */
-async function fetchScryfallCard(scryfallId: string): Promise<ScryfallCardData | null> {
-  try {
-    const response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`);
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if a card is double-faced and needs both sides printed
- */
-function isDoubleFacedCard(layout: string): boolean {
-  return DOUBLE_FACED_LAYOUTS.includes(layout);
 }
 
 /**
@@ -79,11 +39,6 @@ function getBestImageUrl(imageUris: ImageUris | undefined): string | null {
  * Timeout in ms for image fetch operations
  */
 const IMAGE_FETCH_TIMEOUT_MS = 15000;
-
-/**
- * Delay between Scryfall API requests to respect rate limits (10 req/sec)
- */
-const SCRYFALL_REQUEST_DELAY_MS = 100;
 
 /**
  * Load an image and convert to base64 data URL for jsPDF
@@ -116,6 +71,7 @@ async function loadImageAsBase64(url: string): Promise<string> {
 
 /**
  * Prepare cards for PDF export, handling duplicates and double-faced cards
+ * Uses cached images from R2 when available for faster generation
  */
 async function prepareCardsForPdf(
   commander: PrismaCard | null,
@@ -155,75 +111,91 @@ async function prepareCardsForPdf(
     }
   }
 
-  // Calculate total images to load (accounting for potential DFCs and quantities)
-  let totalImages = cardsToProcess.reduce((sum, c) => sum + c.quantity, 0);
-  // DFCs will add extra images, but we'll estimate this as we go
-  let loadedImages = 0;
+  if (cardsToProcess.length === 0) {
+    return [];
+  }
+
+  // Collect unique Scryfall IDs for batch caching
+  const uniqueScryfallIds = [...new Set(cardsToProcess.map((c) => c.card.scryfallId))];
 
   onProgress({
     phase: 'loading',
     current: 0,
-    total: totalImages,
-    message: 'Loading card images...',
+    total: uniqueScryfallIds.length,
+    message: 'Caching card images...',
   });
 
-  // Process each card
+  // Batch cache all images (uploads to R2 if not cached)
+  // This is much faster than fetching one-by-one from Scryfall
+  const cachedImages = await batchCacheImagesWithBackFaces(
+    uniqueScryfallIds,
+    'large',
+    (current, total) => {
+      onProgress({
+        phase: 'loading',
+        current,
+        total,
+        message: `Caching images: ${current}/${total}`,
+      });
+    }
+  );
+
+  // Build result using cached URLs
+  onProgress({
+    phase: 'loading',
+    current: 0,
+    total: cardsToProcess.length,
+    message: 'Preparing cards for PDF...',
+  });
+
+  let processedCount = 0;
   for (const { card, quantity } of cardsToProcess) {
     const scryfallId = card.scryfallId;
-    const cardImages: CardForPdf[] = [];
+    const cached = cachedImages.get(scryfallId);
 
-    // Fetch full card data from Scryfall to check for double-faced
-    const scryfallData = await fetchScryfallCard(scryfallId);
-
-    if (scryfallData && isDoubleFacedCard(scryfallData.layout) && scryfallData.card_faces) {
-      // Double-faced card - get both faces
-      const cardFaces = scryfallData.card_faces;
-      for (let faceIndex = 0; faceIndex < cardFaces.length; faceIndex++) {
-        const face = cardFaces[faceIndex];
-        if (face) {
-          const imageUrl = getBestImageUrl(face.image_uris);
-          if (imageUrl) {
-            cardImages.push({
-              name: face.name,
-              imageUrl,
-              isBackFace: faceIndex > 0,
-            });
-          }
+    if (!cached) {
+      // Fallback to database imageUris if caching failed
+      const imageUris = card.imageUris as ImageUris | null;
+      const imageUrl = getBestImageUrl(imageUris ?? undefined);
+      if (imageUrl) {
+        for (let i = 0; i < quantity; i++) {
+          result.push({
+            name: card.name,
+            imageUrl,
+            isBackFace: false,
+          });
         }
       }
-      // Update total for the extra face
-      totalImages += quantity; // Each DFC adds one extra image per copy
     } else {
-      // Single-faced card
-      const imageUris = card.imageUris as ImageUris | null;
-      const imageUrl = getBestImageUrl(imageUris ?? undefined) ??
-        (scryfallData ? getBestImageUrl(scryfallData.image_uris) : null);
-
-      if (imageUrl) {
-        cardImages.push({
+      // Add front face copies
+      for (let i = 0; i < quantity; i++) {
+        result.push({
           name: card.name,
-          imageUrl,
+          imageUrl: cached.front,
           isBackFace: false,
         });
+
+        // Add back face if it's a DFC
+        if (cached.back) {
+          // For DFCs, extract back face name from card name (e.g., "Front // Back")
+          const nameParts = card.name.split(' // ');
+          const backName = nameParts.length > 1 ? nameParts[1] : `${card.name} (back)`;
+          result.push({
+            name: backName ?? card.name,
+            imageUrl: cached.back,
+            isBackFace: true,
+          });
+        }
       }
     }
 
-    // Add copies based on quantity
-    for (let i = 0; i < quantity; i++) {
-      for (const cardImage of cardImages) {
-        result.push(cardImage);
-        loadedImages++;
-        onProgress({
-          phase: 'loading',
-          current: loadedImages,
-          total: totalImages,
-          message: `Loading: ${cardImage.name}${cardImage.isBackFace ? ' (back)' : ''}`,
-        });
-      }
-    }
-
-    // Delay to respect Scryfall rate limits (10 req/sec)
-    await new Promise(resolve => setTimeout(resolve, SCRYFALL_REQUEST_DELAY_MS));
+    processedCount++;
+    onProgress({
+      phase: 'loading',
+      current: processedCount,
+      total: cardsToProcess.length,
+      message: `Preparing: ${card.name}`,
+    });
   }
 
   return result;
