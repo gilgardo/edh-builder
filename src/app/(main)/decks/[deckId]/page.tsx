@@ -39,6 +39,7 @@ import { Container } from '@/components/layout/container';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
 import { ManaCost } from '@/components/cards/mana-cost';
 import { DeckViewSkeleton } from '@/components/decks/deck-view-skeleton';
+import { PdfExportButton } from '@/components/decks/pdf-export-button';
 import { NewMessageDialog } from '@/components/messaging';
 import { CollaboratorList } from '@/components/collaboration';
 import { ReviewList } from '@/components/reviews';
@@ -263,6 +264,11 @@ export default function DeckViewPage({ params }: PageProps) {
                     <Share2 className="mr-2 h-4 w-4" />
                     Share
                   </Button>
+                  <PdfExportButton
+                    deckName={deck.name}
+                    commander={deck.commander}
+                    cards={deck.cards}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
