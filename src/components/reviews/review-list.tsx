@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useDeckReviews } from '@/hooks';
 import { ReviewCard } from './review-card';
 import { ReviewForm } from './review-form';
 import { RatingDisplay } from './rating-stars';
+import type { DeckReviewWithUser } from '@/types/social.types';
 
 interface ReviewListProps {
   deckId: string;
@@ -19,17 +20,39 @@ export function ReviewList({ deckId, deckOwnerId }: ReviewListProps) {
   const { data: session } = useSession();
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
+  const [allReviews, setAllReviews] = useState<DeckReviewWithUser[]>([]);
+  const prevPageRef = useRef(1);
 
   const { data, isLoading, isFetching } = useDeckReviews(deckId, page);
 
-  const reviews = data?.reviews ?? [];
+  // Accumulate reviews across pages, reset on page 1 (fresh data / invalidation)
+  useEffect(() => {
+    if (!data?.reviews) return;
+    if (page === 1) {
+      setAllReviews(data.reviews);
+    } else if (page > prevPageRef.current) {
+      setAllReviews((prev) => {
+        const existingIds = new Set(prev.map((r) => r.id));
+        const newReviews = data.reviews.filter((r) => !existingIds.has(r.id));
+        return [...prev, ...newReviews];
+      });
+    }
+    prevPageRef.current = page;
+  }, [data?.reviews, page]);
+
+  // Reset to page 1 when query is invalidated (e.g. after creating/deleting a review)
+  const handleFormSuccess = useCallback(() => {
+    setShowForm(false);
+    setPage(1);
+  }, []);
+
   const total = data?.total ?? 0;
   const averageRating = data?.averageRating ?? null;
-  const hasMore = reviews.length < total;
+  const hasMore = allReviews.length < total;
 
   const currentUserId = session?.user?.id;
   const isOwnDeck = currentUserId === deckOwnerId;
-  const hasReviewed = reviews.some((r) => r.userId === currentUserId);
+  const hasReviewed = allReviews.some((r) => r.userId === currentUserId);
   const canReview = currentUserId && !isOwnDeck && !hasReviewed;
 
   return (
@@ -55,7 +78,7 @@ export function ReviewList({ deckId, deckOwnerId }: ReviewListProps) {
           <div className="pb-4 border-b border-border">
             <ReviewForm
               deckId={deckId}
-              onSuccess={() => setShowForm(false)}
+              onSuccess={handleFormSuccess}
               onCancel={() => setShowForm(false)}
             />
           </div>
@@ -66,7 +89,7 @@ export function ReviewList({ deckId, deckOwnerId }: ReviewListProps) {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : reviews.length === 0 ? (
+        ) : allReviews.length === 0 ? (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No reviews yet</p>
             {canReview && (
@@ -77,7 +100,7 @@ export function ReviewList({ deckId, deckOwnerId }: ReviewListProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {reviews.map((review) => (
+            {allReviews.map((review) => (
               <ReviewCard
                 key={review.id}
                 review={review}

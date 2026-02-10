@@ -36,14 +36,20 @@ export function ReviewForm({ deckId, existingReview, onSuccess, onCancel }: Revi
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<CreateReviewInput>({
     resolver: zodResolver(CreateReviewSchema),
     defaultValues: {
-      rating: existingReview?.rating ?? 0,
+      rating: existingReview?.rating ?? 1,
       title: existingReview?.title ?? '',
       content: existingReview?.content ?? '',
     },
   });
+
+  const handleRatingChange = (value: number) => {
+    setRating(value);
+    setValue('rating', value, { shouldValidate: true });
+  };
 
   const handleSuccess = () => {
     reset();
@@ -85,7 +91,7 @@ export function ReviewForm({ deckId, existingReview, onSuccess, onCancel }: Revi
         <RatingStars
           rating={rating}
           interactive
-          onChange={setRating}
+          onChange={handleRatingChange}
           size="lg"
         />
         {rating === 0 && (
