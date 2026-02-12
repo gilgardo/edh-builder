@@ -19,7 +19,17 @@
       "Bash(ls:*)",
       "mcp__filesystem__directory_tree",
       "mcp__firecrawl__firecrawl_search",
-      "Bash(mgrep:*)"
+      "Bash(mgrep:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "Bash(npx:*)",
+      "Bash(PLAYWRIGHT_LAUNCH_OPTIONS='{\"\"executablePath\"\":\"\"/usr/bin/chromium\"\",\"\"args\"\":[\"\"--no-sandbox\"\"]}' echo:*)",
+      "Bash(env:*)",
+      "Bash(CHROME_PATH=/usr/bin/chromium npx -y @anthropic-ai/mcp-playwright:*)",
+      "Bash(chromium:*)",
+      "Bash(DECK_ID=\"cmktzkzp70007md0zsw24s372\")",
+      "Bash(magick:*)",
+      "Bash(identify:*)",
+      "Bash(convert:*)"
     ]
   },
   "enabledMcpjsonServers": [

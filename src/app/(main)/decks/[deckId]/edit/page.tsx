@@ -298,7 +298,7 @@ export default function DeckEditPage({ params }: PageProps) {
                   <span className="hidden md:inline">Draw Test</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[70vh]">
+              <SheetContent side="bottom" className="h-[85vh] sm:h-[70vh]">
                 <SheetHeader className="sr-only">
                   <SheetTitle>Draw Tester</SheetTitle>
                   <SheetDescription>

@@ -57,10 +57,10 @@ export function HeaderCardSearch() {
             cardActionMode="navigate"
             placeholder="Search cards & decks..."
             inputId="header-search"
-            inputClassName="w-48 cursor-text rounded-full border-border bg-background transition-[width] duration-200 ease-out focus:w-72 group-hover:w-72"
+            inputClassName="w-48 cursor-text rounded-full border-border bg-background pr-16 transition-[width] duration-200 ease-out focus:w-72 focus:pr-10 group-hover:w-72 group-hover:pr-10"
             dropdownClassName="w-80 right-0 left-auto"
           />
-          <kbd className="border-border bg-muted text-muted-foreground pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium lg:inline-flex">
+          <kbd className="border-border bg-muted text-muted-foreground pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium group-focus-within:hidden lg:inline-flex">
             <span className="text-xs">&#8984;</span>K
           </kbd>
         </div>

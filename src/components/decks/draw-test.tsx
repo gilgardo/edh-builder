@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
-import { Shuffle, Plus, RotateCcw } from 'lucide-react';
+import { Shuffle, Plus } from 'lucide-react';
 
 import { getCardImageUrl } from '@/services/scryfall';
 import { cn } from '@/lib/utils';
@@ -62,10 +62,6 @@ export function Drawtester({ mainDeck }: DrawtesterProps) {
     );
   }, []);
 
-  const handleReset = useCallback(() => {
-    setState((prev) => ({ ...prev, handSize: INITIAL_HAND_SIZE }));
-  }, []);
-
   if (!mainDeck || mainDeck.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -76,35 +72,21 @@ export function Drawtester({ mainDeck }: DrawtesterProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Controls Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium">
-            Hand: <span className="text-primary">{hand.length}</span> cards
-          </span>
-          <span className="text-muted-foreground text-sm">
-            Library: {remainingCards} remaining
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} disabled={handSize === INITIAL_HAND_SIZE}>
-            <RotateCcw className="mr-1.5 h-4 w-4" />
-            Reset
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleDraw} disabled={!canDraw}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Draw
-          </Button>
-          <Button variant="default" size="sm" onClick={handleShuffle}>
-            <Shuffle className="mr-1.5 h-4 w-4" />
-            New Hand
-          </Button>
-        </div>
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-3 border-b px-4 py-3">
+        <Button variant="outline" size="sm" onClick={handleDraw} disabled={!canDraw}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Draw
+        </Button>
+        <Button variant="default" size="sm" onClick={handleShuffle}>
+          <Shuffle className="mr-1.5 h-4 w-4" />
+          New Hand
+        </Button>
       </div>
 
       {/* Hand Display */}
       <div className="flex-1 overflow-auto p-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {hand.map((deckCard, index) => (
             <DrawCard key={`${deckCard.cardId}-${index}`} deckCard={deckCard} />
           ))}

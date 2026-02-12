@@ -67,11 +67,13 @@ async function fetchBasicLands(colorIdentity: ColorIdentity[]): Promise<BasicLan
     }
   }
 
-  // Always include Wastes as an option (for colorless mana)
-  lands.push({
-    name: WASTES.name,
-    key: WASTES.key,
-  });
+  // Only include Wastes for colorless commanders
+  if (colorIdentity.length === 0) {
+    lands.push({
+      name: WASTES.name,
+      key: WASTES.key,
+    });
+  }
 
   // Fetch actual card data from Scryfall
   const landNames = lands.map((l) => l.name);
@@ -251,8 +253,10 @@ export function getAvailableLands(colorIdentity: ColorIdentity[]): BasicLandKey[
     }
   }
 
-  // Always include Wastes
-  available.push('wastes');
+  // Only include Wastes for colorless commanders
+  if (colorIdentity.length === 0) {
+    available.push('wastes');
+  }
 
   return available;
 }

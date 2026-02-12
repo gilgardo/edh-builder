@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { Route } from 'next';
 import Link from 'next/link';
-
+import Image from 'next/image';
 import { LoginForm } from '@/components/auth/login-form';
 import { LoginButtons } from '@/components/auth/login-buttons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,14 +17,8 @@ export default function LoginPage() {
       <div className="mx-auto w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 flex justify-center">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex gap-0.5">
-              <span className="mana-badge mana-badge-w text-xs">W</span>
-              <span className="mana-badge mana-badge-u text-xs">U</span>
-              <span className="mana-badge mana-badge-b text-xs">B</span>
-              <span className="mana-badge mana-badge-r text-xs">R</span>
-              <span className="mana-badge mana-badge-g text-xs">G</span>
-            </div>
+          <Link href="/" className="flex items-center gap-3">
+            <Image src="/logo-v2.png" alt="EDH Builder" width={56} height={56} className="h-14 w-14" />
             <span className="text-xl font-bold">EDH Builder</span>
           </Link>
         </div>

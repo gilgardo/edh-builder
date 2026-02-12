@@ -76,7 +76,7 @@ export function DeckCardList({
           <ColorIdentityBadges colors={colorIdentity} size="sm" />
         </div>
       )}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="relative flex-1 overflow-auto p-4">
         {/* Commander */}
         {commander && (
           <div
@@ -101,11 +101,11 @@ export function DeckCardList({
         )}
 
         {/* Card Groups in Columns */}
-        <div className={cn('gap-4', columnClass)}>
+        <div className={cn('gap-4 overflow-hidden', columnClass)}>
           {Object.entries(cardGroups).map(([type, cards]) => {
             const cardType = groupNameToCardType(type);
             return (
-            <div key={type} className="break-inside-avoid mb-4">
+            <div key={type} className="mb-4 break-inside-avoid-column overflow-hidden">
               {/* Group Header */}
               <div className="card-group-header mb-0 flex items-center justify-between rounded-t-lg">
                 <h3 className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5">

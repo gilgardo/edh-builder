@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Github, Twitter } from 'lucide-react';
 
 const footerLinks = {
@@ -23,13 +24,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex gap-0.5">
-                <span className="mana-badge mana-badge-w text-xs">W</span>
-                <span className="mana-badge mana-badge-u text-xs">U</span>
-                <span className="mana-badge mana-badge-b text-xs">B</span>
-                <span className="mana-badge mana-badge-r text-xs">R</span>
-                <span className="mana-badge mana-badge-g text-xs">G</span>
-              </div>
+              <Image src="/logo-v2.png" alt="EDH Builder" width={44} height={44} className="h-11 w-11" />
               <span className="text-lg font-bold">EDH Builder</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground">

@@ -279,14 +279,14 @@ export default function DeckViewPage({ params }: PageProps) {
 
         {/* Quick Actions - separate section with image only inside pill */}
         <div className="mb-8 flex justify-center">
-          <div className="relative overflow-hidden rounded-full">
+          <div className="relative overflow-hidden rounded-2xl sm:rounded-full">
             {/* Background image only inside the pill */}
             {commanderImage && (
               <div className="absolute inset-0 opacity-25">
                 <Image src={commanderImage} alt="" fill className="object-cover object-bottom" />
               </div>
             )}
-            <div className="relative flex items-center gap-3 px-10 py-2 backdrop-blur-sm">
+            <div className="relative flex flex-wrap items-center justify-center gap-2 px-4 py-2 backdrop-blur-sm sm:gap-3 sm:px-10">
               {isOwner && (
                 <>
                   <Link href={`/decks/${deckId}/edit`}>
@@ -517,7 +517,7 @@ export default function DeckViewPage({ params }: PageProps) {
                 <CardTitle>Mana Curve</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex h-32 items-end justify-between gap-1">
+                <div className="flex h-24 items-end justify-between gap-1 sm:h-32">
                   {['0', '1', '2', '3', '4', '5', '6', '7+'].map((cmc) => {
                     const count = manaCurve[cmc] || 0;
                     const maxCount = Math.max(...Object.values(manaCurve), 1);

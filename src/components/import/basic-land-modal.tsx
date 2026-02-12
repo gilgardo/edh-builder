@@ -88,8 +88,10 @@ export function BasicLandModal({
       });
     }
   }
-  // Always add Wastes as an option
-  availableLands.push({ key: 'wastes', name: 'Wastes' });
+  // Only add Wastes for colorless commanders
+  if (colorIdentity.length === 0) {
+    availableLands.push({ key: 'wastes', name: 'Wastes' });
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
