@@ -29,7 +29,8 @@
       "Bash(DECK_ID=\"cmktzkzp70007md0zsw24s372\")",
       "Bash(magick:*)",
       "Bash(identify:*)",
-      "Bash(convert:*)"
+      "Bash(convert:*)",
+      "Bash(head:*)"
     ]
   },
   "enabledMcpjsonServers": [
