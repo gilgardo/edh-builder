@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ColorIdentityBadges } from '@/components/cards/color-identity-badges';
+import { getCardImageUrl } from '@/lib/card-image-url';
 import { cn, getColorIdentityInfo } from '@/lib/utils';
 import type { DeckListItem } from '@/hooks/use-decks';
 
@@ -18,8 +19,7 @@ interface DeckCardProps {
 
 export function DeckCard({ deck, className }: DeckCardProps) {
   const router = useRouter();
-  const commanderImageUris = deck.commander?.imageUris;
-  const commanderImage = commanderImageUris?.art_crop || commanderImageUris?.normal;
+  const commanderImage = getCardImageUrl(deck.commander, 'art_crop') ?? getCardImageUrl(deck.commander, 'normal');
   const likesCount = deck.favorites?.length ?? 0;
 
   const colorInfo = getColorIdentityInfo(deck.colorIdentity);

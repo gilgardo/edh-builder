@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ManaCost } from '@/components/cards/mana-cost';
-import { getCardImageUrl, getCardManaCost } from '@/services/scryfall';
+import { getCardManaCost } from '@/services/scryfall';
+import { getScryfallCardImageUrl } from '@/lib/card-image-url';
 import type { ScryfallCard } from '@/types/scryfall.types';
 
 interface CardPreviewDialogProps {
@@ -15,7 +16,7 @@ interface CardPreviewDialogProps {
 export function CardPreviewDialog({ card, open, onClose }: CardPreviewDialogProps) {
   if (!card) return null;
 
-  const imageUrl = getCardImageUrl(card, 'normal');
+  const imageUrl = getScryfallCardImageUrl(card, 'normal');
   const manaCost = getCardManaCost(card);
 
   return (

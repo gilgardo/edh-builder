@@ -3,7 +3,7 @@
  * Centralizes logic that was duplicated across page components.
  */
 
-import type { DeckCard, DisplayCard } from '@/types/cards';
+import type { DeckCard } from '@/types/cards';
 
 /**
  * Card type display order - controls how card groups are sorted
@@ -143,16 +143,9 @@ export function calculateTotalCards(
 
 /**
  * Gets the image URIs for a card, handling various formats
+ * Delegates to the unified resolver in lib/card-image-url.ts
  */
-export function getDisplayCardImageUrl(
-  card: DisplayCard | null,
-  size: 'small' | 'normal' | 'large' | 'art_crop' = 'normal'
-): string | null {
-  if (!card) return null;
-
-  const imageUris = card.imageUris as Record<string, string> | null;
-  return imageUris?.[size] ?? imageUris?.normal ?? null;
-}
+export { getCardImageUrl as getDisplayCardImageUrl } from '@/lib/card-image-url';
 
 interface AverageCmcResult {
   /** Average CMC excluding lands (standard metric) */

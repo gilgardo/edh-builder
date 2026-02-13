@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCardPrintings } from '@/hooks/use-card-printings';
 import type { ScryfallCard } from '@/types/scryfall.types';
-import { getCardImageUrl } from '@/services/scryfall';
+import { getScryfallCardImageUrl } from '@/lib/card-image-url';
 import { cn } from '@/lib/utils';
 
 // Constants for tilt effect
@@ -100,7 +100,7 @@ interface PrintingCardProps {
 }
 
 function PrintingCard({ card, isSelected, isCurrent, onSelect }: PrintingCardProps) {
-  const imageUrl = getCardImageUrl(card, 'normal');
+  const imageUrl = getScryfallCardImageUrl(card, 'normal');
   const price = card.prices.usd ?? card.prices.usd_foil;
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isPulsing, setIsPulsing] = useState(false);

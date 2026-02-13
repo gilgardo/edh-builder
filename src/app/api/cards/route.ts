@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { searchCards, autocompleteCardName, type SearchFilters } from '@/services/scryfall';
+import { mapScryfallToCard } from '@/services/card-cache';
+import { prisma } from '@/lib/prisma';
 
 const searchParamsSchema = z.object({
   q: z.string().optional(),
@@ -55,6 +57,30 @@ export async function GET(request: NextRequest) {
 
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    // Async-cache search results to PostgreSQL (fire-and-forget, no latency hit)
+    if (result.cards.length > 0) {
+      Promise.allSettled(
+        result.cards.map((card) => {
+          const data = mapScryfallToCard(card);
+          return prisma.card.upsert({
+            where: { scryfallId: card.id },
+            create: data,
+            update: {
+              ...data,
+              // Preserve existing cached image URLs
+              cachedImageSmall: undefined,
+              cachedImageNormal: undefined,
+              cachedImageLarge: undefined,
+              cachedBackImageSmall: undefined,
+              cachedBackImageNormal: undefined,
+              cachedBackImageLarge: undefined,
+              imageCachedAt: undefined,
+            },
+          });
+        })
+      ).catch((err) => console.error('Background card cache error:', err));
     }
 
     return NextResponse.json({

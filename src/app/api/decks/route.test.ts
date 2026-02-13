@@ -150,7 +150,7 @@ describe('GET /api/decks', () => {
 
     const request = createGetRequest('/api/decks', { colorIdentity: 'W,U' });
     const response = await GET(request);
-    const { status, data } = await parseJsonResponse<{ decks: unknown[] }>(response);
+    const { status } = await parseJsonResponse<{ decks: unknown[] }>(response);
 
     expect(status).toBe(200);
     expect(prismaMock.deck.findMany).toHaveBeenCalledWith(
@@ -203,7 +203,7 @@ describe('GET /api/decks', () => {
 
     const request = createGetRequest('/api/decks', { userId: testUsers.user1.id });
     const response = await GET(request);
-    const { status, data } = await parseJsonResponse<{ decks: unknown[] }>(response);
+    const { status } = await parseJsonResponse<{ decks: unknown[] }>(response);
 
     expect(status).toBe(200);
     // Should not filter by isPublic for the owner - verify the call was made

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { getCardImageUrl } from '@/lib/card-image-url';
 import type { DisplayCard } from '@/types/cards';
 
 /**
@@ -30,13 +31,7 @@ function CardImageGridItem({ card, quantity, onHover, className }: CardImageGrid
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const imageUris = card.imageUris as {
-    small?: string;
-    normal?: string;
-    large?: string;
-  } | null;
-
-  const imageUrl = imageUris?.normal ?? imageUris?.large;
+  const imageUrl = getCardImageUrl(card, 'normal');
 
   return (
     <div

@@ -6,6 +6,7 @@ import { Crown } from 'lucide-react';
 import { ManaCost } from '@/components/cards/mana-cost';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { getCardImageUrl } from '@/lib/card-image-url';
 import type { Commander } from '@/types/cards';
 
 interface CommanderCardProps {
@@ -29,14 +30,7 @@ export function CommanderCard({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const imageUris = commander.imageUris as {
-    small?: string;
-    normal?: string;
-    large?: string;
-    art_crop?: string;
-  } | null;
-
-  const imageUrl = imageUris?.normal ?? imageUris?.large;
+  const imageUrl = getCardImageUrl(commander, 'normal');
 
   if (variant === 'compact') {
     return (

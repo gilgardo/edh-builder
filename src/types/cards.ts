@@ -58,16 +58,9 @@ export interface PreviewableCard {
 
 /**
  * Get the image URL from a card's imageUris
+ * Delegates to the unified resolver in lib/card-image-url.ts
  */
-export function getDisplayCardImageUrl(
-  card: PreviewableCard | null | undefined,
-  size: 'small' | 'normal' | 'large' = 'normal'
-): string | null {
-  if (!card?.imageUris) return null;
-  const uris = card.imageUris as CardImageUris;
-  if (!uris) return null;
-  return uris[size] ?? null;
-}
+export { getCardImageUrl as getDisplayCardImageUrl } from '@/lib/card-image-url';
 
 /**
  * Normalize a Scryfall card to the unified DisplayCard format

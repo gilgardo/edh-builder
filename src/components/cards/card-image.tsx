@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ScryfallCard } from '@/types/scryfall.types';
-import { getCardImageUrl } from '@/services/scryfall';
+import { getScryfallCardImageUrl } from '@/lib/card-image-url';
 
 interface CardImageProps {
   card: ScryfallCard;
@@ -25,7 +25,7 @@ export function CardImage({ card, size = 'normal', className, priority = false }
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const dimensions = sizeMap[size];
-  const imageUrl = getCardImageUrl(card, size);
+  const imageUrl = getScryfallCardImageUrl(card, size);
 
   // Small size uses fixed dimensions (used in flex layouts)
   // Normal/large use responsive width (used in grids)

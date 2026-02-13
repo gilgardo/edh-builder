@@ -5,7 +5,7 @@ import { ImageOff } from 'lucide-react';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { PreviewableCard } from '@/types/cards';
-import { getDisplayCardImageUrl } from '@/types/cards';
+import { getCardImageUrl } from '@/lib/card-image-url';
 import { cn } from '@/lib/utils';
 
 // Constants for tilt effect
@@ -35,7 +35,7 @@ export function CardPreviewPanel({ card, fallbackCard, className }: CardPreviewP
   }, []);
 
   const displayCard = card ?? fallbackCard;
-  const imageUrl = getDisplayCardImageUrl(displayCard, 'large');
+  const imageUrl = getCardImageUrl(displayCard, 'large');
   const isHoveredCard = card !== null;
 
   // Derive loading and error states from comparing current URL with loaded/error URLs

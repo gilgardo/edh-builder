@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { Shuffle, Plus } from 'lucide-react';
 
-import { getCardImageUrl } from '@/services/scryfall';
+import { getCardImageUrl } from '@/lib/card-image-url';
 import { cn } from '@/lib/utils';
 import type { DeckCard } from '@/types/cards';
 import { shuffleDeck } from '@/lib/deck-utils';
@@ -102,7 +102,7 @@ interface DrawCardProps {
 
 function DrawCard({ deckCard }: DrawCardProps) {
   const card = deckCard.card;
-  const imageUrl = getCardImageUrl(card, 'normal');
+  const imageUrl = getCardImageUrl(card, 'normal') ?? 'https://cards.scryfall.io/normal/back.jpg';
 
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isPulsing, setIsPulsing] = useState(false);
