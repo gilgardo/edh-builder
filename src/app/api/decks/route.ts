@@ -64,7 +64,15 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true, image: true },
           },
           commander: {
-            select: { id: true, name: true, scryfallId: true, imageUris: true },
+            select: {
+              id: true,
+              name: true,
+              scryfallId: true,
+              imageUris: true,
+              cachedImageSmall: true,
+              cachedImageNormal: true,
+              cachedImageLarge: true,
+            },
           },
           _count: {
             select: { cards: true },

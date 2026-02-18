@@ -18,13 +18,15 @@ const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+// Optional: override the S3 endpoint (e.g. http://minio:9000 for local dev with MinIO)
+const R2_ENDPOINT = process.env.R2_ENDPOINT;
 
 /**
  * Check if R2 is configured
  */
 export function isR2Configured(): boolean {
   return !!(
-    R2_ACCOUNT_ID &&
+    (R2_ACCOUNT_ID || R2_ENDPOINT) &&
     R2_ACCESS_KEY_ID &&
     R2_SECRET_ACCESS_KEY &&
     R2_BUCKET_NAME &&
@@ -41,9 +43,16 @@ function getR2Client(): S3Client | null {
     return null;
   }
 
+  // R2_ENDPOINT overrides the auto-constructed Cloudflare endpoint.
+  // When set (e.g. http://minio:9000 for local dev), path-style addressing
+  // is required because MinIO doesn't support virtual-hosted–style buckets.
+  const endpoint = R2_ENDPOINT ?? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  const forcePathStyle = !!R2_ENDPOINT;
+
   return new S3Client({
     region: 'auto',
-    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    endpoint,
+    forcePathStyle,
     credentials: {
       accessKeyId: R2_ACCESS_KEY_ID!,
       secretAccessKey: R2_SECRET_ACCESS_KEY!,

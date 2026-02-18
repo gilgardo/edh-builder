@@ -20,15 +20,23 @@ const nextConfig: NextConfig = {
         hostname: '*.r2.dev',
         pathname: '/**',
       },
-      // Custom R2 domain from environment variable
+      // Custom R2 domain from environment variable (supports both https and http for local MinIO)
       ...(process.env.R2_PUBLIC_URL
-        ? [
-            {
-              protocol: 'https' as const,
-              hostname: new URL(process.env.R2_PUBLIC_URL).hostname,
-              pathname: '/**',
-            },
-          ]
+        ? (() => {
+            try {
+              const url = new URL(process.env.R2_PUBLIC_URL!);
+              return [
+                {
+                  protocol: url.protocol.replace(':', '') as 'http' | 'https',
+                  hostname: url.hostname,
+                  ...(url.port ? { port: url.port } : {}),
+                  pathname: '/**',
+                },
+              ];
+            } catch {
+              return [];
+            }
+          })()
         : []),
     ],
   },
