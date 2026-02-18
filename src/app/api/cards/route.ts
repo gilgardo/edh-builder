@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { searchCards, autocompleteCardName, type SearchFilters } from '@/services/scryfall';
 import { mapScryfallToCard } from '@/services/card-cache';
 import { prisma } from '@/lib/prisma';
+import { batchCacheImages } from '@/services/image-cache';
+import { isR2Configured } from '@/lib/r2-client';
 import type { EnrichedScryfallCard } from '@/types/scryfall.types';
 
 const searchParamsSchema = z.object({
@@ -110,6 +112,22 @@ export async function GET(request: NextRequest) {
           });
         })
       ).catch((err) => console.error('Background card cache error:', err));
+
+      // Background R2 image caching for cards without cached thumbnails
+      if (isR2Configured()) {
+        const uncachedIds = enrichedCards
+          .filter((card) => !card.cachedImageSmall)
+          .map((card) => card.id);
+
+        if (uncachedIds.length > 0) {
+          console.log(`[R2] Queuing ${uncachedIds.length} cards for image caching`);
+          batchCacheImages(uncachedIds, 'small').catch((err) =>
+            console.error('[R2] Background image cache error:', err)
+          );
+        }
+      } else {
+        console.warn('[R2] Not configured — skipping image caching');
+      }
     }
 
     return NextResponse.json({
