@@ -5,7 +5,15 @@ import type { Deck, Card } from '@prisma/client';
 
 export type DeckListItem = Deck & {
   user: { id: string; name: string | null; image: string | null };
-  commander: { id: string; name: string; scryfallId: string; imageUris: { normal?: string; art_crop?: string } | null } | null;
+  commander: {
+    id: string;
+    name: string;
+    scryfallId: string;
+    imageUris: { normal?: string; art_crop?: string } | null;
+    cachedImageSmall: string | null;
+    cachedImageNormal: string | null;
+    cachedImageLarge: string | null;
+  } | null;
   _count: { cards: number };
   favorites: { id: string }[];
 };

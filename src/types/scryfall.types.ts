@@ -84,6 +84,16 @@ export interface ScryfallPrices {
   tix?: string;
 }
 
+/**
+ * ScryfallCard enriched with R2 cached image URLs from the database.
+ * The extra fields are optional so it's a strict superset of ScryfallCard.
+ */
+export type EnrichedScryfallCard = ScryfallCard & {
+  cachedImageSmall: string | null;
+  cachedImageNormal: string | null;
+  cachedImageLarge: string | null;
+};
+
 export interface ScryfallSearchResponse {
   object: 'list';
   total_cards: number;

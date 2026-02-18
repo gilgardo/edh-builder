@@ -2,7 +2,7 @@
 
 import { useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { ScryfallCard } from '@/types/scryfall.types';
+import type { EnrichedScryfallCard } from '@/types/scryfall.types';
 
 /* ============================================================
    Types
@@ -29,7 +29,7 @@ interface SearchParams {
 }
 
 interface SearchResult {
-  cards: ScryfallCard[];
+  cards: EnrichedScryfallCard[];
   total: number;
   hasMore: boolean;
   page: number;

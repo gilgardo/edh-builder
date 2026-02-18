@@ -31,9 +31,21 @@ services:
       - GOOGLE_SECRET=${GOOGLE_SECRET:-}
       - DISCORD_ID=${DISCORD_ID:-}
       - DISCORD_SECRET=${DISCORD_SECRET:-}
+      # Local R2 emulation via MinIO (S3-compatible)
+      # R2_ENDPOINT tells the client to use MinIO instead of Cloudflare R2
+      - R2_ENDPOINT=http://minio:9000
+      - R2_ACCESS_KEY_ID=minioadmin
+      - R2_SECRET_ACCESS_KEY=minioadmin
+      - R2_BUCKET_NAME=edh-builder-cards
+      # Public URL must be browser-accessible (localhost, not internal minio hostname)
+      - R2_PUBLIC_URL=http://localhost:9000/edh-builder-cards
+      # R2_ACCOUNT_ID not needed when R2_ENDPOINT is set, but kept for isR2Configured()
+      - R2_ACCOUNT_ID=local
     depends_on:
       db:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     networks:
       - edh-network
     restart: unless-stopped
@@ -83,6 +95,46 @@ services:
       - tools
     restart: unless-stopped
 
+  # MinIO - local S3-compatible storage emulating Cloudflare R2
+  minio:
+    image: minio/minio:latest
+    container_name: edh-builder-minio
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console (http://localhost:9001, login: minioadmin/minioadmin)
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - edh-network
+    restart: unless-stopped
+
+  # One-shot init: creates the bucket and sets it to public on first start
+  minio-init:
+    image: minio/mc:latest
+    container_name: edh-builder-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/edh-builder-cards &&
+        mc anonymous set public local/edh-builder-cards &&
+        echo 'MinIO bucket ready'
+      "
+    networks:
+      - edh-network
+
 networks:
   edh-network:
     driver: bridge
@@ -91,4 +143,6 @@ volumes:
   postgres-data:
     driver: local
   prisma-client:
+    driver: local
+  minio-data:
     driver: local

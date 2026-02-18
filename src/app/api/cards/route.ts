@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { searchCards, autocompleteCardName, type SearchFilters } from '@/services/scryfall';
 import { mapScryfallToCard } from '@/services/card-cache';
 import { prisma } from '@/lib/prisma';
+import type { EnrichedScryfallCard } from '@/types/scryfall.types';
 
 const searchParamsSchema = z.object({
   q: z.string().optional(),
@@ -59,6 +60,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
+    // Look up any already-cached R2 image URLs from DB to enrich the response
+    const scryfallIds = result.cards.map((c) => c.id);
+    const cachedInDb = await prisma.card.findMany({
+      where: { scryfallId: { in: scryfallIds } },
+      select: {
+        scryfallId: true,
+        cachedImageSmall: true,
+        cachedImageNormal: true,
+        cachedImageLarge: true,
+      },
+    });
+    const cacheMap = new Map(
+      cachedInDb.map((c) => [
+        c.scryfallId as string,
+        c as { cachedImageSmall: string | null; cachedImageNormal: string | null; cachedImageLarge: string | null },
+      ])
+    );
+
+    const enrichedCards: EnrichedScryfallCard[] = result.cards.map((card) => {
+      const cached = cacheMap.get(card.id);
+      return {
+        ...card,
+        cachedImageSmall: cached?.cachedImageSmall ?? null,
+        cachedImageNormal: cached?.cachedImageNormal ?? null,
+        cachedImageLarge: cached?.cachedImageLarge ?? null,
+      };
+    });
+
     // Async-cache search results to PostgreSQL (fire-and-forget, no latency hit)
     if (result.cards.length > 0) {
       Promise.allSettled(
@@ -84,7 +113,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      cards: result.cards,
+      cards: enrichedCards,
       total: result.total,
       hasMore: result.hasMore,
       page: data.page ?? 1,
