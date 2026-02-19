@@ -2,17 +2,25 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const publicRoutes = ['/', '/login', '/register', '/about'];
-const publicPrefixes = ['/api/auth', '/decks/public'];
+const publicPrefixes = ['/api/auth', '/api/health', '/api/images', '/api/cards', '/decks/public'];
+const authRoutes = ['/login', '/register'];
 
 const isPublic = (path: string) =>
   publicRoutes.includes(path) || publicPrefixes.some((p) => path.startsWith(p));
 
 export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
   const token =
     request.cookies.get('authjs.session-token') ??
     request.cookies.get('__Secure-authjs.session-token');
 
-  if (!token && !isPublic(request.nextUrl.pathname)) {
+  // Authenticated users should not land on login/register
+  if (token && authRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/decks', request.nextUrl));
+  }
+
+  // Unauthenticated users can only access public routes
+  if (!token && !isPublic(pathname)) {
     return NextResponse.redirect(new URL('/login', request.nextUrl));
   }
 
