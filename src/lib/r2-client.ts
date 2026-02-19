@@ -46,7 +46,7 @@ function getR2Client(): S3Client | null {
   // R2_ENDPOINT overrides the auto-constructed Cloudflare endpoint.
   // When set (e.g. http://minio:9000 for local dev), path-style addressing
   // is required because MinIO doesn't support virtual-hosted–style buckets.
-  const endpoint = R2_ENDPOINT ?? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  const endpoint = R2_ENDPOINT || `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
   const forcePathStyle = !!R2_ENDPOINT;
 
   return new S3Client({
