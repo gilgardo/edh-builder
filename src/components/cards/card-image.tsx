@@ -1,11 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ScryfallCard } from '@/types/scryfall.types';
-import { getScryfallCardImageUrl } from '@/lib/card-image-url';
 
 interface CardImageProps {
   card: ScryfallCard;
@@ -25,7 +23,10 @@ export function CardImage({ card, size = 'normal', className, priority = false }
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const dimensions = sizeMap[size];
-  const imageUrl = getScryfallCardImageUrl(card, size);
+  // Route through the caching API so images are stored in R2 on first load.
+  // The endpoint redirects to the R2 URL (or Scryfall fallback); browsers follow
+  // 302 redirects natively, so we use a plain <img> instead of next/image.
+  const imageUrl = `/api/images/${card.id}?size=${size}`;
 
   // Small size uses fixed dimensions (used in flex layouts)
   // Normal/large use responsive width (used in grids)
@@ -56,11 +57,13 @@ export function CardImage({ card, size = 'normal', className, priority = false }
       style={isFixedSize ? { width: dimensions.width } : undefined}
     >
       {isLoading && <Skeleton className="absolute inset-0 rounded-lg" />}
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={imageUrl}
         alt={card.name}
         width={dimensions.width}
         height={dimensions.height}
+        loading={priority ? 'eager' : 'lazy'}
         className={cn(
           'rounded-lg transition-opacity duration-300 w-full h-full object-cover',
           isLoading ? 'opacity-0' : 'opacity-100'
@@ -70,7 +73,6 @@ export function CardImage({ card, size = 'normal', className, priority = false }
           setIsLoading(false);
           setHasError(true);
         }}
-        priority={priority}
       />
     </div>
   );
