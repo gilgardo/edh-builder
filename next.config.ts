@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
         hostname: '*.r2.dev',
         pathname: '/**',
       },
+      // Production R2 custom domain (hardcoded so it works regardless of build-time env vars)
+      {
+        protocol: 'https',
+        hostname: 'images.edh-builder.com',
+        pathname: '/**',
+      },
       // Custom R2 domain from environment variable (supports both https and http for local MinIO)
       ...(process.env.R2_PUBLIC_URL
         ? (() => {
