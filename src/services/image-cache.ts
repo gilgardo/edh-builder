@@ -5,12 +5,9 @@
  * Falls back to Scryfall URLs when R2 is not configured.
  */
 
+import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import {
-  uploadToR2,
-  getCardImageKey,
-  isR2Configured,
-} from '@/lib/r2-client';
+import { uploadToR2, getCardImageKey } from '@/lib/r2-client';
 import { getCard } from './card-cache';
 import type { Card as PrismaCard } from '@prisma/client';
 import pLimit from 'p-limit';
@@ -59,11 +56,7 @@ async function fetchImageWithTimeout(url: string): Promise<ArrayBuffer> {
 /**
  * Get Scryfall image URL from card data
  */
-function getScryfallImageUrl(
-  card: PrismaCard,
-  size: ImageSize,
-  face: ImageFace
-): string | null {
+function getScryfallImageUrl(card: PrismaCard, size: ImageSize, face: ImageFace): string | null {
   const imageUris =
     face === 'back'
       ? (card.backFaceImageUris as Record<string, string> | null)
@@ -76,6 +69,34 @@ function getScryfallImageUrl(
   return imageUris[size] ?? null;
 }
 
+async function cacheToR2(
+  scryfallUrl: string,
+  scryfallId: string,
+  cacheField: string | symbol | number,
+  face: ImageFace,
+  size: ImageSize
+): Promise<string | null> {
+  try {
+    const imageBuffer = await fetchImageWithTimeout(scryfallUrl);
+    const r2Key = getCardImageKey(scryfallId, size, face);
+    const publicUrl = await uploadToR2(r2Key, imageBuffer, 'image/jpeg');
+
+    if (!publicUrl) return null;
+
+    await prisma.card.update({
+      where: { scryfallId },
+      data: {
+        [cacheField]: publicUrl,
+        imageCachedAt: new Date(),
+      },
+    });
+
+    return publicUrl;
+  } catch (error) {
+    console.error(`Failed to cache image for ${scryfallId}:`, error);
+    return null;
+  }
+}
 /**
  * Get a card image URL, caching to R2 if configured
  *
@@ -107,37 +128,9 @@ export async function getCardImageUrl(
     return null;
   }
 
-  // 4. If R2 not configured, return Scryfall URL directly
-  if (!isR2Configured()) {
-    return scryfallUrl;
-  }
+  after(() => cacheToR2(scryfallUrl, scryfallId, cacheField, face, size));
 
-  // 5. Fetch from Scryfall and upload to R2
-  try {
-    const imageBuffer = await fetchImageWithTimeout(scryfallUrl);
-    const r2Key = getCardImageKey(scryfallId, size, face);
-    const publicUrl = await uploadToR2(r2Key, imageBuffer, 'image/jpeg');
-
-    if (!publicUrl) {
-      // R2 upload failed, return Scryfall URL
-      return scryfallUrl;
-    }
-
-    // 6. Update database with cached URL
-    await prisma.card.update({
-      where: { scryfallId },
-      data: {
-        [cacheField]: publicUrl,
-        imageCachedAt: new Date(),
-      },
-    });
-
-    return publicUrl;
-  } catch (error) {
-    console.error(`Failed to cache image for ${scryfallId}:`, error);
-    // Return Scryfall URL as fallback
-    return scryfallUrl;
-  }
+  return scryfallUrl;
 }
 
 /**
@@ -193,10 +186,22 @@ export async function batchCacheImages(
     scryfallIds.map((id) =>
       limit(async () => {
         try {
-          const url = await getCardImageUrl(id, size, 'front');
-          if (url) {
-            results.set(id, url);
+          const card = await getCard(id);
+          if (!card) return;
+
+          const cacheField = getCachedImageField(size, 'front');
+          const cachedUrl = card[cacheField] as string | null;
+
+          if (cachedUrl) {
+            results.set(id, cachedUrl);
+            return;
           }
+
+          const scryfallUrl = getScryfallImageUrl(card, size, 'front');
+          if (!scryfallUrl) return;
+
+          const r2Url = await cacheToR2(scryfallUrl, id, cacheField, 'front', size);
+          results.set(id, r2Url ?? scryfallUrl);
         } catch (error) {
           console.error(`Failed to cache image for ${id}:`, error);
         }
@@ -235,20 +240,34 @@ export async function batchCacheImagesWithBackFaces(
     scryfallIds.map((id) =>
       limit(async () => {
         try {
-          const frontUrl = await getCardImageUrl(id, size, 'front');
-          if (frontUrl) {
-            const card = cardMap.get(id);
-            const result: { front: string; back?: string } = { front: frontUrl };
+          const card = await getCard(id);
+          if (!card) return;
 
-            if (card?.hasBackFace) {
-              const backUrl = await getCardImageUrl(id, size, 'back');
-              if (backUrl) {
-                result.back = backUrl;
-              }
+          const frontField = getCachedImageField(size, 'front');
+          const cachedFront = card[frontField] as string | null;
+          const frontScryfallUrl = getScryfallImageUrl(card, size, 'front');
+          if (!frontScryfallUrl) return;
+
+          const frontUrl = cachedFront
+            ?? await cacheToR2(frontScryfallUrl, id, frontField, 'front', size)
+            ?? frontScryfallUrl;
+
+          const result: { front: string; back?: string } = { front: frontUrl };
+
+          const cardMeta = cardMap.get(id);
+          if (cardMeta?.hasBackFace) {
+            const backField = getCachedImageField(size, 'back');
+            const cachedBack = card[backField] as string | null;
+            const backScryfallUrl = getScryfallImageUrl(card, size, 'back');
+
+            if (backScryfallUrl) {
+              result.back = cachedBack
+                ?? await cacheToR2(backScryfallUrl, id, backField, 'back', size)
+                ?? backScryfallUrl;
             }
-
-            results.set(id, result);
           }
+
+          results.set(id, result);
         } catch (error) {
           console.error(`Failed to cache images for ${id}:`, error);
         }
@@ -287,7 +306,7 @@ export async function areImagesCached(
   const results = new Map<string, boolean>();
 
   for (const card of cards) {
-    results.set(card.scryfallId, !!(card[field as keyof typeof card]));
+    results.set(card.scryfallId, !!card[field as keyof typeof card]);
   }
 
   // Mark missing cards as not cached
