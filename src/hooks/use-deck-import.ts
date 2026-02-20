@@ -94,12 +94,12 @@ async function importCardsWithProgress(options: ImportDeckOptions): Promise<{
     errors: [],
   };
 
-  onProgress?.(progress);
+  onProgress?.({ ...progress });
 
   for (const card of resolvedCards) {
     progress.currentCardName = card.name;
     progress.current = imported;
-    onProgress?.(progress);
+    onProgress?.({ ...progress });
 
     try {
       await addCardToDeck(deckId, card.scryfallCard as ScryfallCard, card.quantity, card.category);
@@ -116,7 +116,7 @@ async function importCardsWithProgress(options: ImportDeckOptions): Promise<{
 
   progress.status = errors.length > 0 ? 'error' : 'completed';
   progress.current = imported;
-  onProgress?.(progress);
+  onProgress?.({ ...progress });
 
   return { imported, errors };
 }
