@@ -51,10 +51,10 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-background to-muted/30 py-20 md:py-32">
+      <section className="border-border from-background to-muted/30 relative overflow-hidden border-b bg-linear-to-b py-20 md:py-32">
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
+          <div className="bg-primary/5 absolute top-0 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full blur-3xl" />
         </div>
 
         <Container>
@@ -69,18 +69,18 @@ export default function Home() {
             </div>
 
             {/* Title */}
-            <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
+            <h1 className="text-foreground mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
               Build Your Perfect{' '}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
                 Commander
               </span>{' '}
               Deck
             </h1>
 
             {/* Subtitle */}
-            <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              The ultimate MTG Commander deck builder. Search cards, analyze your mana curve, validate
-              color identity, and share your decks with the community.
+            <p className="text-muted-foreground mx-auto mb-10 max-w-2xl text-lg md:text-xl">
+              The ultimate MTG Commander deck builder. Search cards, analyze your mana curve,
+              validate color identity, and share your decks with the community.
             </p>
 
             {/* CTA Buttons */}
@@ -97,7 +97,7 @@ export default function Home() {
             </div>
 
             {/* Trust indicators */}
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="text-muted-foreground mt-12 flex flex-wrap items-center justify-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
                 <span>Free to use</span>
@@ -119,10 +119,10 @@ export default function Home() {
       <section className="py-20 md:py-28">
         <Container>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+            <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight md:text-4xl">
               Everything You Need
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-muted-foreground text-lg">
               Powerful tools to help you build, analyze, and share your Commander decks.
             </p>
           </div>
@@ -131,7 +131,7 @@ export default function Home() {
             {features.map((feature) => (
               <Card
                 key={feature.title}
-                className="relative overflow-hidden border-border bg-card transition-shadow hover:shadow-lg"
+                className="border-border bg-card relative overflow-hidden transition-shadow hover:shadow-lg"
               >
                 <CardHeader>
                   <div
@@ -151,17 +151,17 @@ export default function Home() {
       </section>
 
       {/* Highlights Section */}
-      <section className="border-y border-border bg-muted/30 py-20">
+      <section className="border-border bg-muted/30 border-y py-20">
         <Container>
           <div className="grid gap-8 md:grid-cols-3">
             {highlights.map((highlight) => (
               <div key={highlight.title} className="flex gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <highlight.icon className="h-5 w-5 text-primary" />
+                <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                  <highlight.icon className="text-primary h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">{highlight.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{highlight.description}</p>
+                  <h3 className="text-foreground font-semibold">{highlight.title}</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">{highlight.description}</p>
                 </div>
               </div>
             ))}
@@ -172,17 +172,17 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 md:py-28">
         <Container>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary px-6 py-16 text-center md:px-16">
+          <div className="from-primary/90 to-primary relative overflow-hidden rounded-2xl bg-linear-to-br px-6 py-16 text-center md:px-16">
             {/* Background decoration */}
             <div className="absolute inset-0 -z-10 opacity-30">
-              <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-white/20 blur-3xl" />
+              <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-white/20 blur-3xl" />
               <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-white/20 blur-3xl" />
             </div>
 
-            <h2 className="mb-4 text-3xl font-bold text-primary-foreground md:text-4xl">
+            <h2 className="text-primary-foreground mb-4 text-3xl font-bold md:text-4xl">
               Ready to Build Your Deck?
             </h2>
-            <p className="mx-auto mb-8 max-w-xl text-lg text-primary-foreground/80">
+            <p className="text-primary-foreground/80 mx-auto mb-8 max-w-xl text-lg">
               Join thousands of Commander players building and sharing their decks. Start building
               your perfect deck today.
             </p>
@@ -197,7 +197,7 @@ export default function Home() {
                 size="lg"
                 variant="outline"
                 asChild
-                className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 bg-transparent"
               >
                 <Link href="/login">Sign Up Free</Link>
               </Button>

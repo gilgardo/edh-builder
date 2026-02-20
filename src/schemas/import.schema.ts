@@ -116,6 +116,17 @@ export const ImportPreviewSchema = z.object({
   source: z.enum(['moxfield', 'text']),
 });
 
+/**
+ * Progress state for card-by-card import operations
+ */
+export interface ImportProgress {
+  current: number;
+  total: number;
+  currentCardName: string;
+  status: 'idle' | 'importing' | 'completed' | 'error';
+  errors: Array<{ name: string; error: string }>;
+}
+
 // Type exports
 export type MoxfieldUrl = z.infer<typeof MoxfieldUrlSchema>;
 export type TextImport = z.infer<typeof TextImportSchema>;

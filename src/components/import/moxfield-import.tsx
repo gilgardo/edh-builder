@@ -15,15 +15,11 @@ export function MoxfieldImport({ onPreviewReady }: MoxfieldImportProps) {
   const [url, setUrl] = useState('');
   const moxfieldMutation = useMoxfieldImport();
 
-  const handleFetch = async () => {
-    if (!url.trim()) return;
-
-    try {
-      const result = await moxfieldMutation.mutateAsync(url);
-      onPreviewReady(result);
-    } catch {
-      // Error handled by mutation state
-    }
+  const handleFetch = () => {
+    if (!url.trim() || moxfieldMutation.isPending) return;
+    moxfieldMutation.mutate(url, {
+      onSuccess: (result) => onPreviewReady(result),
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -4,3 +4,4 @@ export { TextImport } from './text-import';
 export { ImportPreviewComponent } from './import-preview';
 export { ImportProgressComponent } from './import-progress';
 export { BasicLandModal } from './basic-land-modal';
+export type { ImportProgress } from '@/schemas/import.schema';

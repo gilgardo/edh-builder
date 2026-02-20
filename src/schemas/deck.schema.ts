@@ -1,24 +1,11 @@
 import { z } from 'zod';
+import { BasicLandSchema } from './import.schema';
 
 export const ColorIdentitySchema = z.enum(['W', 'U', 'B', 'R', 'G']);
 
 export const DeckFormatSchema = z.enum(['COMMANDER', 'BRAWL', 'OATHBREAKER']);
 
 export const CardCategorySchema = z.enum(['MAIN', 'COMMANDER', 'SIDEBOARD', 'CONSIDERING']);
-
-export const CreateDeckSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Deck name is required')
-    .max(100, 'Deck name must be 100 characters or less'),
-  description: z.string().max(2000, 'Description must be 2000 characters or less').optional(),
-  format: DeckFormatSchema.default('COMMANDER'),
-  isPublic: z.boolean().default(false),
-  commanderId: z.string().cuid().optional(),
-  partnerId: z.string().cuid().optional(),
-});
-
-export const UpdateDeckSchema = CreateDeckSchema.partial();
 
 // Schema for Scryfall card data (subset needed for syncing)
 export const ScryfallCardSchema = z.object({
@@ -70,6 +57,22 @@ export const ScryfallCardSchema = z.object({
   artist: z.string().optional(),
   released_at: z.string().optional(),
 });
+
+export const CreateDeckSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Deck name is required')
+    .max(100, 'Deck name must be 100 characters or less'),
+  description: z.string().max(2000, 'Description must be 2000 characters or less').optional(),
+  format: DeckFormatSchema.default('COMMANDER'),
+  isPublic: z.boolean().default(false),
+  commanderId: z.string().cuid().optional(),
+  partnerId: z.string().cuid().optional(),
+  commanderScryfallCard: ScryfallCardSchema.optional(),
+  basicLands: BasicLandSchema.optional(),
+});
+
+export const UpdateDeckSchema = CreateDeckSchema.partial();
 
 export const AddCardToDeckSchema = z.object({
   scryfallCard: ScryfallCardSchema,

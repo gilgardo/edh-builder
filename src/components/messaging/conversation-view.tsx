@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/components/ui/toast';
 import { MessageBubble } from './message-bubble';
 import { MessageInput } from './message-input';
 import { useMessages, useSendMessageToConversation, useMarkConversationRead } from '@/hooks/use-messages';
@@ -17,6 +18,7 @@ interface ConversationViewProps {
 
 export function ConversationView({ conversation }: ConversationViewProps) {
   const { data: session } = useSession();
+  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isFetching } = useMessages(conversation.id);
@@ -52,10 +54,15 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   }, [messages.length]);
 
   const handleSend = async (content: string) => {
-    await sendMessage.mutateAsync({
-      conversationId: conversation.id,
-      data: { content },
-    });
+    try {
+      await sendMessage.mutateAsync({
+        conversationId: conversation.id,
+        data: { content },
+      });
+    } catch (error) {
+      toast('Failed to send message. Please try again.', 'error');
+      throw error;
+    }
   };
 
   return (
