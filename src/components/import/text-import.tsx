@@ -31,15 +31,11 @@ export function TextImport({ onPreviewReady }: TextImportProps) {
   const [text, setText] = useState('');
   const textMutation = useTextImport();
 
-  const handleParse = async () => {
-    if (!text.trim()) return;
-
-    try {
-      const result = await textMutation.mutateAsync(text);
-      onPreviewReady(result);
-    } catch {
-      // Error handled by mutation state
-    }
+  const handleParse = () => {
+    if (!text.trim() || textMutation.isPending) return;
+    textMutation.mutate(text, {
+      onSuccess: (result) => onPreviewReady(result),
+    });
   };
 
   const handlePaste = async () => {

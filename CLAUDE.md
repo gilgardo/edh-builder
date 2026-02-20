@@ -267,6 +267,83 @@ There is NO local `node_modules` - all dependencies exist only inside the contai
 
 ---
 
+## Frontend Architecture Patterns
+
+### Mutation Usage: mutate vs mutateAsync
+
+Use `mutate` with `onSuccess`/`onError` callbacks by default. Only use `mutateAsync` when:
+1. The calling function MUST await the result (e.g., sequential mutations where step N+1 needs step N's return value)
+2. The caller's interface requires a Promise (e.g., `MessageInput.onSend: (content: string) => Promise<void>`)
+
+When using `mutateAsync`, ALWAYS wrap in try/catch with user-facing error feedback (toast).
+
+**NEVER** use `mutateAsync` with an empty catch block. That pattern exists only to suppress
+unhandled-rejection warnings and hides errors from users. Use `mutate` instead.
+
+```typescript
+// GOOD: mutate with callback — no return value needed
+mutation.mutate(data, {
+  onSuccess: (result) => handleResult(result),
+});
+
+// GOOD: mutateAsync when chaining is required
+const result = await createDeck.mutateAsync(deckData);
+await addCardToDeck.mutateAsync({ deckId: result.deck.id, ... });
+
+// BAD: mutateAsync with empty catch
+try {
+  const result = await mutation.mutateAsync(data);
+  onSuccess(result);
+} catch {
+  // Error handled by mutation state  <-- NO. Use mutate() + onSuccess instead.
+}
+```
+
+### Form Submit Guards
+
+Every form that triggers mutations must implement two layers of protection:
+
+1. **Button disabled state**: Disable for ALL mutation pending states in the chain.
+2. **Early exit guard**: Add `if (anyMutation.isPending) return;` at the top of the submit handler.
+
+```typescript
+const onSubmit = async (data: FormData) => {
+  if (createMutation.isPending || updateMutation.isPending) return;
+  // ...
+};
+// <Button disabled={createMutation.isPending || updateMutation.isPending}>
+```
+
+### Component Size Guideline
+
+Components over 300 lines should be evaluated for splitting. Extract sub-components into
+co-located files in the same directory. Pass `useForm` instances and handlers via props rather
+than duplicating hooks in children.
+
+Route-level directories (`src/app/.../`) should NOT have `index.ts` barrel exports to avoid
+conflicts with Next.js file-based routing.
+
+### Schema and Type Location
+
+- **Zod schemas**: Always in `src/schemas/*.schema.ts`. Never inline a Zod schema in a component file.
+- **Inferred types**: Export from the same schema file using `z.infer<typeof Schema>`.
+- **Shared interfaces** (non-Zod): In `src/schemas/*.schema.ts` if they describe data shapes,
+  or `src/types/*.types.ts` if they describe API responses or external data.
+- **Component-specific props**: Define in the component file — do NOT centralize props interfaces.
+
+### Barrel Export Pattern
+
+Feature directories under `src/components/` should have an `index.ts` barrel export:
+
+```typescript
+// src/components/import/index.ts
+export { MoxfieldImport } from './moxfield-import';
+export { TextImport } from './text-import';
+export type { ImportProgress } from '@/schemas/import.schema';
+```
+
+---
+
 ## Work in Progress: Social Features & Notifications
 
 ### Features to Implement

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ImportPreview, CardResolution } from '@/schemas/import.schema';
+import type { ImportPreview, CardResolution, ImportProgress } from '@/schemas/import.schema';
 import type { ScryfallCard } from '@/types/scryfall.types';
 import type { CardCategory } from '@/schemas/deck.schema';
 
@@ -15,14 +15,6 @@ interface MoxfieldImportResult extends ImportPreview {
 }
 
 type TextImportResult = ImportPreview;
-
-interface ImportProgress {
-  current: number;
-  total: number;
-  currentCardName: string;
-  status: 'idle' | 'importing' | 'completed' | 'error';
-  errors: Array<{ name: string; error: string }>;
-}
 
 interface ImportDeckOptions {
   deckId: string;
