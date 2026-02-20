@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { syncCardFromScryfall } from '@/lib/card-sync';
 import { CreateDeckSchema, DeckFiltersSchema } from '@/schemas/deck.schema';
+import type { ScryfallCard } from '@/types/scryfall.types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -132,16 +134,67 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Sync commander card
+    const commanderCard = data.commanderScryfallCard
+      ? await syncCardFromScryfall(data.commanderScryfallCard as unknown as ScryfallCard)
+      : null;
+
+    // Sync basic lands: batch-fetch from Scryfall by name, then upsert
+    const LAND_NAMES: Record<string, string> = {
+      plains: 'Plains', island: 'Island', swamp: 'Swamp',
+      mountain: 'Mountain', forest: 'Forest', wastes: 'Wastes',
+    };
+    const landEntries = Object.entries(data.basicLands ?? {}).filter(([, qty]) => qty > 0) as Array<[string, number]>;
+    let syncedLands: Array<{ cardId: string; quantity: number }> = [];
+
+    if (landEntries.length > 0) {
+      const names = landEntries.map(([key]) => LAND_NAMES[key]);
+      const res = await fetch('https://api.scryfall.com/cards/collection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'EDH-Builder/1.0' },
+        body: JSON.stringify({ identifiers: names.map((name) => ({ name })) }),
+      });
+      if (res.ok) {
+        const { data: scryfallCards } = await res.json() as { data: ScryfallCard[] };
+        const byName = new Map(scryfallCards.map((c) => [c.name.toLowerCase(), c]));
+        const synced = await Promise.all(
+          landEntries.map(async ([key, quantity]) => {
+            const landName = LAND_NAMES[key];
+            const card = landName ? byName.get(landName.toLowerCase()) : undefined;
+            if (!card) return null;
+            const dbCard = await syncCardFromScryfall(card);
+            return { cardId: dbCard.id, quantity };
+          })
+        );
+        syncedLands = synced.filter((x): x is { cardId: string; quantity: number } => x !== null);
+      }
+    }
+
+    const resolvedCommanderId = commanderCard?.id ?? data.commanderId;
+    const colorIdentity = data.commanderScryfallCard?.color_identity ?? [];
+
+    const cardsToCreate = [
+      ...(resolvedCommanderId
+        ? [{ cardId: resolvedCommanderId, quantity: 1, category: 'COMMANDER' as const }]
+        : []),
+      ...syncedLands.map(({ cardId, quantity }) => ({
+        cardId,
+        quantity,
+        category: 'MAIN' as const,
+      })),
+    ];
+
     const deck = await prisma.deck.create({
       data: {
         name: data.name,
         description: data.description,
         format: data.format,
         isPublic: data.isPublic,
-        colorIdentity: [],
+        colorIdentity,
         userId: session.user.id,
-        commanderId: data.commanderId,
+        commanderId: resolvedCommanderId,
         partnerId: data.partnerId,
+        ...(cardsToCreate.length > 0 && { cards: { create: cardsToCreate } }),
       },
       include: {
         user: {

@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Deck, Card } from '@prisma/client';
+import type { ScryfallCard } from '@/types/scryfall.types';
+import type { BasicLands } from '@/schemas/import.schema';
 
 export type DeckListItem = Deck & {
   user: { id: string; name: string | null; image: string | null };
@@ -61,6 +63,8 @@ interface CreateDeckData {
   isPublic?: boolean;
   commanderId?: string;
   partnerId?: string;
+  commanderScryfallCard?: ScryfallCard;
+  basicLands?: BasicLands;
 }
 
 async function createDeck(data: CreateDeckData): Promise<{ deck: Deck & { commander: Card | null } }> {

@@ -57,11 +57,16 @@ export function useToggleDeckLike() {
   const likeMutation = useLikeDeck();
   const unlikeMutation = useUnlikeDeck();
 
-  const toggle = async (deckId: string, isCurrentlyLiked: boolean) => {
+  const toggle = (
+    deckId: string,
+    isCurrentlyLiked: boolean,
+    options?: { onError?: (error: Error) => void }
+  ) => {
     if (isCurrentlyLiked) {
-      return unlikeMutation.mutateAsync(deckId);
+      unlikeMutation.mutate(deckId, { onError: options?.onError });
+    } else {
+      likeMutation.mutate(deckId, { onError: options?.onError });
     }
-    return likeMutation.mutateAsync(deckId);
   };
 
   return {
