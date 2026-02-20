@@ -3,9 +3,19 @@ import { prisma } from '@/lib/prisma';
 import { isR2Configured, getBucketName, getPublicBaseUrl } from '@/lib/r2-client';
 import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
 
-async function checkR2(): Promise<{ status: string; bucket?: string; publicUrl?: string; error?: string }> {
+async function checkR2(): Promise<{ status: string; bucket?: string; publicUrl?: string; error?: string; vars?: object }> {
+  // Temporary debug: show which vars are present (not values)
+  const vars = {
+    R2_ACCOUNT_ID: !!process.env.R2_ACCOUNT_ID,
+    R2_ACCESS_KEY_ID: !!process.env.R2_ACCESS_KEY_ID,
+    R2_SECRET_ACCESS_KEY: !!process.env.R2_SECRET_ACCESS_KEY,
+    R2_BUCKET_NAME: !!process.env.R2_BUCKET_NAME,
+    R2_PUBLIC_URL: !!process.env.R2_PUBLIC_URL,
+    R2_ENDPOINT: process.env.R2_ENDPOINT ?? '(unset)',
+  };
+
   if (!isR2Configured()) {
-    return { status: 'not_configured' };
+    return { status: 'not_configured', vars };
   }
 
   const bucket = getBucketName();

@@ -30,7 +30,10 @@
       "Bash(magick:*)",
       "Bash(identify:*)",
       "Bash(convert:*)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "mcp__vercel__list_teams",
+      "mcp__vercel__get_deployment_build_logs",
+      "mcp__vercel__web_fetch_vercel_url"
     ]
   },
   "enabledMcpjsonServers": [
