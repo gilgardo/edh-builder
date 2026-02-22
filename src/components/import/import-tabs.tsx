@@ -1,9 +1,18 @@
 'use client';
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { FileText, Link, PenLine } from 'lucide-react';
+import { createContext, useContext } from 'react';
+import { FileText, Link as LinkIcon, PenLine } from 'lucide-react';
+import LinkWithActiveState from '@/components/ui/link-with-active-state';
 
 export type ImportMethod = 'scratch' | 'moxfield' | 'text';
+
+const ActiveTabContext = createContext<ImportMethod>('scratch');
+
+const TABS = [
+  { value: 'scratch' as ImportMethod, icon: PenLine, label: 'From Scratch' },
+  { value: 'moxfield' as ImportMethod, icon: LinkIcon, label: 'Moxfield' },
+  { value: 'text' as ImportMethod, icon: FileText, label: 'Text List' },
+];
 
 interface ImportTabsProps {
   value: ImportMethod;
@@ -13,26 +22,22 @@ interface ImportTabsProps {
 
 export function ImportTabs({ value, onValueChange, children }: ImportTabsProps) {
   return (
-    <Tabs value={value} onValueChange={(v) => onValueChange(v as ImportMethod)} className="w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-6">
-        <TabsTrigger value="scratch" className="flex items-center gap-2">
-          <PenLine className="h-4 w-4" />
-          <span className="hidden sm:inline">From Scratch</span>
-          <span className="sm:hidden">New</span>
-        </TabsTrigger>
-        <TabsTrigger value="moxfield" className="flex items-center gap-2">
-          <Link className="h-4 w-4" />
-          <span className="hidden sm:inline">Moxfield</span>
-          <span className="sm:hidden">URL</span>
-        </TabsTrigger>
-        <TabsTrigger value="text" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          <span className="hidden sm:inline">Text List</span>
-          <span className="sm:hidden">Text</span>
-        </TabsTrigger>
-      </TabsList>
-      {children}
-    </Tabs>
+    <ActiveTabContext.Provider value={value}>
+      <div className="w-full">
+        <div className="bg-muted mb-6 flex gap-1 rounded-lg p-1">
+          {TABS.map((tab) => (
+            <LinkWithActiveState
+              key={tab.value}
+              isActive={value === tab.value}
+              icon={tab.icon}
+              label={tab.label}
+              onClick={() => onValueChange(tab.value)}
+            />
+          ))}
+        </div>
+        {children}
+      </div>
+    </ActiveTabContext.Provider>
   );
 }
 
@@ -43,7 +48,7 @@ export function ImportTabsContent({
   value: ImportMethod;
   children: React.ReactNode;
 }) {
-  return <TabsContent value={value}>{children}</TabsContent>;
+  const active = useContext(ActiveTabContext);
+  if (value !== active) return null;
+  return <>{children}</>;
 }
-
-export { TabsContent };

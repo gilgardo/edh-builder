@@ -7,7 +7,7 @@ import { Plus, Globe, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/layout/container';
 import { DeckGallery } from '@/components/decks/deck-gallery';
-import { cn } from '@/lib/utils';
+import LinkWithActiveState from '@/components/ui/link-with-active-state';
 
 export default function DecksPage() {
   const searchParams = useSearchParams();
@@ -37,31 +37,19 @@ export default function DecksPage() {
         </div>
 
         {/* View Toggle */}
-        <div className="mb-6 flex gap-1 rounded-lg border border-border bg-muted/30 p-1 w-fit">
-          <Link
+        <div className="mb-6 flex w-fit gap-1 rounded-lg border border-border bg-muted/30 p-1">
+          <LinkWithActiveState
             href="/decks"
-            className={cn(
-              'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              !isMine
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Globe className="h-4 w-4" />
-            Browse
-          </Link>
-          <Link
+            icon={Globe}
+            label="Browse"
+            isActive={!isMine}
+          />
+          <LinkWithActiveState
             href="/decks?mine=true"
-            className={cn(
-              'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              isMine
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <User className="h-4 w-4" />
-            My Decks
-          </Link>
+            icon={User}
+            label="My Decks"
+            isActive={isMine}
+          />
         </div>
 
         <DeckGallery mine={isMine} />

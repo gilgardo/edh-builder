@@ -37,8 +37,7 @@ import type { ScryfallCard } from '@/types/scryfall.types';
 import type { ImportPreview, BasicLands, ImportProgress } from '@/schemas/import.schema';
 import { CreateDeckSchema } from '@/schemas/deck.schema';
 import type { CreateDeck, ColorIdentity } from '@/schemas/deck.schema';
-import { CommanderStep } from './commander-step';
-import { DeckDetailsStep } from './deck-details-step';
+import { ScratchForm } from './scratch-form';
 
 export function CreateDeckForm() {
   const router = useRouter();
@@ -52,7 +51,6 @@ export function CreateDeckForm() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
 
   // From scratch state
-  const [step, setStep] = useState<'commander' | 'details'>('commander');
   const [selectedCommander, setSelectedCommander] = useState<ScryfallCard | null>(null);
   const [showBasicLandModal, setShowBasicLandModal] = useState(false);
   const [pendingBasicLands, setPendingBasicLands] = useState<BasicLands | null>(null);
@@ -90,13 +88,11 @@ export function CreateDeckForm() {
   const handleBasicLandConfirm = (lands: BasicLands) => {
     setPendingBasicLands(lands);
     setShowBasicLandModal(false);
-    setStep('details');
   };
 
   const handleBasicLandSkip = () => {
     setPendingBasicLands(null);
     setShowBasicLandModal(false);
-    setStep('details');
   };
 
   // Handle import preview ready
@@ -282,9 +278,7 @@ export function CreateDeckForm() {
           <h1 className="text-3xl font-bold tracking-tight">Create New Deck</h1>
           <p className="text-muted-foreground mt-2">
             {importMethod === 'scratch'
-              ? step === 'commander'
-                ? 'Start by selecting your commander'
-                : 'Fill in the details for your deck'
+              ? 'Build your deck from scratch'
               : importMethod === 'moxfield'
                 ? 'Import a deck from Moxfield'
                 : 'Paste your deck list'}
@@ -295,60 +289,24 @@ export function CreateDeckForm() {
         <ImportTabs value={importMethod} onValueChange={handleMethodChange}>
           {/* From Scratch */}
           <ImportTabsContent value="scratch">
-            {/* Step indicator */}
-            <div className="mb-8 flex items-center gap-4">
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                  step === 'commander'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                1
-              </div>
-              <div className="bg-border h-px flex-1" />
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                  step === 'details'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                2
-              </div>
-            </div>
+            <ScratchForm
+              form={form}
+              selectedCommander={selectedCommander}
+              cards={cards}
+              query={query}
+              isSearching={isSearching}
+              pendingBasicLands={pendingBasicLands}
+              formatValue={formatValue}
+              isPublicValue={isPublicValue}
+              isMutating={createDeck.isPending}
+              isError={createDeck.isError}
+              onQueryChange={setQuery}
+              onSelectCommander={handleSelectCommander}
+              onClearCommander={() => setSelectedCommander(null)}
+              onSubmit={onSubmit}
+              onEditBasicLands={() => setShowBasicLandModal(true)}
+            />
 
-            {/* Step 1: Commander Selection */}
-            {step === 'commander' && (
-              <CommanderStep
-                selectedCommander={selectedCommander}
-                cards={cards}
-                query={query}
-                isSearching={isSearching}
-                onQueryChange={setQuery}
-                onSelectCommander={handleSelectCommander}
-                onClearCommander={() => setSelectedCommander(null)}
-                onContinue={() => setStep('details')}
-              />
-            )}
-
-            {/* Step 2: Deck Details */}
-            {step === 'details' && selectedCommander && (
-              <DeckDetailsStep
-                form={form}
-                selectedCommander={selectedCommander}
-                pendingBasicLands={pendingBasicLands}
-                formatValue={formatValue}
-                isPublicValue={isPublicValue}
-                isMutating={createDeck.isPending}
-                isError={createDeck.isError}
-                onSubmit={onSubmit}
-                onBack={() => setStep('commander')}
-                onEditBasicLands={() => setShowBasicLandModal(true)}
-              />
-            )}
-
-            {/* Basic Land Modal */}
             <BasicLandModal
               open={showBasicLandModal}
               onOpenChange={setShowBasicLandModal}
