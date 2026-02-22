@@ -147,5 +147,6 @@ EXPOSE 3000
 ENV NODE_ENV=development
 ENV HOSTNAME=0.0.0.0
 
-# Start development server with hot reload
-CMD ["pnpm", "dev"]
+# Generate Prisma client at startup (volume mounts override build-time generation)
+# then start development server with hot reload
+CMD ["sh", "-c", "pnpm db:generate && pnpm dev"]

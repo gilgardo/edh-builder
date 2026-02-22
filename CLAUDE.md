@@ -6,7 +6,7 @@ EDH Builder is a web application for building, sharing, and discovering Magic: T
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS v4 with MTG-themed color palette
 - **Database**: PostgreSQL with Prisma ORM v6
@@ -224,6 +224,28 @@ This project uses Tailwind CSS v4 with CSS-based configuration. Colors are defin
 
 ### NextAuth v5
 Using the beta version of NextAuth v5. Configuration is in `src/lib/auth.ts`.
+
+### proxy.ts (Next.js 16 — replaces middleware.ts)
+`middleware.ts` is **deprecated** since Next.js 16.0.0 and renamed to `proxy.ts`. The file lives at `src/proxy.ts` (same level as `app/`).
+
+**Key facts:**
+- Export a named `proxy` function (or a default export) — NOT `middleware`
+- Runs on the **Node.js runtime** (Edge runtime is no longer supported)
+- Same `config.matcher` API as before
+- Same `NextRequest` / `NextResponse` API — redirect, rewrite, set headers/cookies
+- Next.js natively picks up `src/proxy.ts`; no wrapper file needed
+
+**Current auth routing in `src/proxy.ts`:**
+
+| Path pattern | Unauthenticated | Authenticated |
+|---|---|---|
+| `/`, `/login`, `/register`, `/about` | ✓ allowed | `/login`,`/register` redirect → `/decks` |
+| `/api/auth*`, `/api/health`, `/api/images`, `/api/cards`, `/api/decks` | ✓ allowed | ✓ allowed |
+| `/decks`, `/decks/[deckId]` | ✓ allowed (public browsing) | ✓ allowed |
+| `/decks/new`, `/decks/[deckId]/edit` | redirect → `/login` | ✓ allowed |
+| Everything else | redirect → `/login` | ✓ allowed |
+
+The `GET /api/decks` handler enforces `isPublic: true` server-side when no `userId` is passed, so unauthenticated users only see public decks even though the route is open.
 
 ### Prisma
 Prisma client is generated to `node_modules/.prisma/client`. Run `docker exec edh-builder-app pnpm db:generate` after schema changes.

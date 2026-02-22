@@ -2,11 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const publicRoutes = ['/', '/login', '/register', '/about'];
-const publicPrefixes = ['/api/auth', '/api/health', '/api/images', '/api/cards', '/decks/public'];
+const publicPrefixes = ['/api/auth', '/api/health', '/api/images', '/api/cards', '/api/decks'];
 const authRoutes = ['/login', '/register'];
 
+// Allows /decks (browse) and /decks/[deckId] (view), but not /decks/new or /decks/[id]/edit
+const publicDeckPath = /^\/decks(\/(?!new\b)[^/]+)?$/;
+
 const isPublic = (path: string) =>
-  publicRoutes.includes(path) || publicPrefixes.some((p) => path.startsWith(p));
+  publicRoutes.includes(path) ||
+  publicPrefixes.some((p) => path.startsWith(p)) ||
+  publicDeckPath.test(path);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
