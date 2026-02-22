@@ -95,9 +95,6 @@ importers:
       react-hook-form:
         specifier: ^7.70.0
         version: 7.70.0(react@19.2.3)
-      react-to-pdf:
-        specifier: 3.0.0
-        version: 3.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -3554,12 +3551,6 @@ packages:
       '@types/react':
         optional: true
 
-  react-to-pdf@3.0.0:
-    resolution: {integrity: sha512-aYYyrKDX2Bp4BFdX77CHGzbOWRyD+iz2O5G9DKPhez6ZKh3SfBDuIiVG+XoYp3HQ3XVsL/nOv1Lny5mrjZ4skw==}
-    peerDependencies:
-      react: '>=16.8'
-      react-dom: '>=16.8'
-
   react@19.2.3:
     resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
     engines: {node: '>=0.10.0'}
@@ -6536,7 +6527,8 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
-  base64-arraybuffer@1.0.2: {}
+  base64-arraybuffer@1.0.2:
+    optional: true
 
   baseline-browser-mapping@2.9.11: {}
 
@@ -6672,6 +6664,7 @@ snapshots:
   css-line-break@2.1.0:
     dependencies:
       utrie: 1.0.2
+    optional: true
 
   csstype@3.2.3: {}
 
@@ -7313,6 +7306,7 @@ snapshots:
     dependencies:
       css-line-break: 2.1.0
       text-segmentation: 1.0.3
+    optional: true
 
   ignore@5.3.2: {}
 
@@ -7918,13 +7912,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.7
 
-  react-to-pdf@3.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
-    dependencies:
-      html2canvas: 1.4.1
-      jspdf: 4.0.0
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
-
   react@19.2.3: {}
 
   readdirp@4.1.2: {}
@@ -8242,6 +8229,7 @@ snapshots:
   text-segmentation@1.0.3:
     dependencies:
       utrie: 1.0.2
+    optional: true
 
   tinybench@2.9.0: {}
 
@@ -8411,6 +8399,7 @@ snapshots:
   utrie@1.0.2:
     dependencies:
       base64-arraybuffer: 1.0.2
+    optional: true
 
   vite@7.3.1(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2):
     dependencies:
