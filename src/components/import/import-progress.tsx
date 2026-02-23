@@ -2,14 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
-
-interface ImportProgress {
-  current: number;
-  total: number;
-  currentCardName: string;
-  status: 'idle' | 'importing' | 'completed' | 'error';
-  errors: Array<{ name: string; error: string }>;
-}
+import type { ImportProgress } from '@/schemas/import.schema';
 
 interface ImportProgressProps {
   progress: ImportProgress;

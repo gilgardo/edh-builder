@@ -6,7 +6,7 @@ EDH Builder is a web application for building, sharing, and discovering Magic: T
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS v4 with MTG-themed color palette
 - **Database**: PostgreSQL with Prisma ORM v6
@@ -225,6 +225,28 @@ This project uses Tailwind CSS v4 with CSS-based configuration. Colors are defin
 ### NextAuth v5
 Using the beta version of NextAuth v5. Configuration is in `src/lib/auth.ts`.
 
+### proxy.ts (Next.js 16 — replaces middleware.ts)
+`middleware.ts` is **deprecated** since Next.js 16.0.0 and renamed to `proxy.ts`. The file lives at `src/proxy.ts` (same level as `app/`).
+
+**Key facts:**
+- Export a named `proxy` function (or a default export) — NOT `middleware`
+- Runs on the **Node.js runtime** (Edge runtime is no longer supported)
+- Same `config.matcher` API as before
+- Same `NextRequest` / `NextResponse` API — redirect, rewrite, set headers/cookies
+- Next.js natively picks up `src/proxy.ts`; no wrapper file needed
+
+**Current auth routing in `src/proxy.ts`:**
+
+| Path pattern | Unauthenticated | Authenticated |
+|---|---|---|
+| `/`, `/login`, `/register`, `/about` | ✓ allowed | `/login`,`/register` redirect → `/decks` |
+| `/api/auth*`, `/api/health`, `/api/images`, `/api/cards`, `/api/decks` | ✓ allowed | ✓ allowed |
+| `/decks`, `/decks/[deckId]` | ✓ allowed (public browsing) | ✓ allowed |
+| `/decks/new`, `/decks/[deckId]/edit` | redirect → `/login` | ✓ allowed |
+| Everything else | redirect → `/login` | ✓ allowed |
+
+The `GET /api/decks` handler enforces `isPublic: true` server-side when no `userId` is passed, so unauthenticated users only see public decks even though the route is open.
+
 ### Prisma
 Prisma client is generated to `node_modules/.prisma/client`. Run `docker exec edh-builder-app pnpm db:generate` after schema changes.
 
@@ -264,6 +286,83 @@ docker exec edh-builder-app pnpm build
 ```
 
 There is NO local `node_modules` - all dependencies exist only inside the container.
+
+---
+
+## Frontend Architecture Patterns
+
+### Mutation Usage: mutate vs mutateAsync
+
+Use `mutate` with `onSuccess`/`onError` callbacks by default. Only use `mutateAsync` when:
+1. The calling function MUST await the result (e.g., sequential mutations where step N+1 needs step N's return value)
+2. The caller's interface requires a Promise (e.g., `MessageInput.onSend: (content: string) => Promise<void>`)
+
+When using `mutateAsync`, ALWAYS wrap in try/catch with user-facing error feedback (toast).
+
+**NEVER** use `mutateAsync` with an empty catch block. That pattern exists only to suppress
+unhandled-rejection warnings and hides errors from users. Use `mutate` instead.
+
+```typescript
+// GOOD: mutate with callback — no return value needed
+mutation.mutate(data, {
+  onSuccess: (result) => handleResult(result),
+});
+
+// GOOD: mutateAsync when chaining is required
+const result = await createDeck.mutateAsync(deckData);
+await addCardToDeck.mutateAsync({ deckId: result.deck.id, ... });
+
+// BAD: mutateAsync with empty catch
+try {
+  const result = await mutation.mutateAsync(data);
+  onSuccess(result);
+} catch {
+  // Error handled by mutation state  <-- NO. Use mutate() + onSuccess instead.
+}
+```
+
+### Form Submit Guards
+
+Every form that triggers mutations must implement two layers of protection:
+
+1. **Button disabled state**: Disable for ALL mutation pending states in the chain.
+2. **Early exit guard**: Add `if (anyMutation.isPending) return;` at the top of the submit handler.
+
+```typescript
+const onSubmit = async (data: FormData) => {
+  if (createMutation.isPending || updateMutation.isPending) return;
+  // ...
+};
+// <Button disabled={createMutation.isPending || updateMutation.isPending}>
+```
+
+### Component Size Guideline
+
+Components over 300 lines should be evaluated for splitting. Extract sub-components into
+co-located files in the same directory. Pass `useForm` instances and handlers via props rather
+than duplicating hooks in children.
+
+Route-level directories (`src/app/.../`) should NOT have `index.ts` barrel exports to avoid
+conflicts with Next.js file-based routing.
+
+### Schema and Type Location
+
+- **Zod schemas**: Always in `src/schemas/*.schema.ts`. Never inline a Zod schema in a component file.
+- **Inferred types**: Export from the same schema file using `z.infer<typeof Schema>`.
+- **Shared interfaces** (non-Zod): In `src/schemas/*.schema.ts` if they describe data shapes,
+  or `src/types/*.types.ts` if they describe API responses or external data.
+- **Component-specific props**: Define in the component file — do NOT centralize props interfaces.
+
+### Barrel Export Pattern
+
+Feature directories under `src/components/` should have an `index.ts` barrel export:
+
+```typescript
+// src/components/import/index.ts
+export { MoxfieldImport } from './moxfield-import';
+export { TextImport } from './text-import';
+export type { ImportProgress } from '@/schemas/import.schema';
+```
 
 ---
 

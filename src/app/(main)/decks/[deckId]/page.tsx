@@ -91,13 +91,12 @@ export default function DeckViewPage({ params }: PageProps) {
     [deck]
   );
 
-  const handleDelete = async () => {
-    try {
-      await deleteDeck.mutateAsync(deckId);
-      router.push('/decks');
-    } catch {
-      toast('Failed to delete deck', 'error');
-    }
+  const handleDelete = () => {
+    if (deleteDeck.isPending) return;
+    deleteDeck.mutate(deckId, {
+      onSuccess: () => router.push('/decks'),
+      onError: () => toast('Failed to delete deck', 'error'),
+    });
   };
 
   const handleCopyUrl = () => {
@@ -105,16 +104,12 @@ export default function DeckViewPage({ params }: PageProps) {
     toast('Link copied to clipboard', 'success');
   };
 
-  const handleToggleLike = async () => {
+  const handleToggleLike = () => {
     if (!session?.user) {
       toast('Sign in to like decks', 'error');
       return;
     }
-    try {
-      await toggleLike(deckId, isLiked);
-    } catch {
-      toast('Failed to update like', 'error');
-    }
+    toggleLike(deckId, isLiked, { onError: () => toast('Failed to update like', 'error') });
   };
 
   if (isLoading) {
